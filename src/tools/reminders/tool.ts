@@ -83,9 +83,22 @@ export class RemindersTool extends BaseTool {
       };
     }
 
-    const remindAt = new Date(normalized.remind_at).getTime();
+    let remindAt = new Date(normalized.remind_at).getTime();
+    if (!Number.isFinite(remindAt) || remindAt <= Date.now()) {
+      const fallback = this.inferFromText(context.user_message || '');
+      if (fallback.remind_at) {
+        const fallbackTime = new Date(fallback.remind_at).getTime();
+        if (Number.isFinite(fallbackTime)) {
+          remindAt = fallbackTime;
+        }
+      }
+    }
 
-    if (remindAt <= Date.now()) {
+    if (Number.isFinite(remindAt) && remindAt <= Date.now()) {
+      remindAt += 24 * 60 * 60 * 1000;
+    }
+
+    if (!Number.isFinite(remindAt) || remindAt <= Date.now()) {
       return {
         success: false,
         error: 'Reminder time must be in the future',
