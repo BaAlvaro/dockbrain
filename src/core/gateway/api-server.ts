@@ -7,6 +7,8 @@ import type { TaskRepository } from '../../persistence/repositories/task-reposit
 import type { AuditRepository } from '../../persistence/repositories/audit-repository.js';
 import type { PairingTokenRepository } from '../../persistence/repositories/pairing-token-repository.js';
 import type { PermissionRepository } from '../../persistence/repositories/permission-repository.js';
+import type { AppConfig } from '../../../config/schema.js';
+import { GmailService } from '../integrations/gmail-service.js';
 
 export class ApiServer {
   private server: FastifyInstance;
@@ -20,6 +22,9 @@ export class ApiServer {
     private auditRepo: AuditRepository,
     private pairingTokenRepo: PairingTokenRepository,
     private permissionRepo: PermissionRepository,
+    private config: AppConfig,
+    private gmailService: GmailService | null,
+    private hookToken: string | null,
     adminToken: string,
     host: string = '127.0.0.1',
     port: number = 3000
@@ -42,6 +47,26 @@ export class ApiServer {
 
   private setupRoutes(): void {
     this.server.addHook('preHandler', async (request, reply) => {
+      if (request.url.startsWith('/hooks/gmail')) {
+        if (!this.config.hooks.enabled || !this.config.hooks.gmail.enabled) {
+          reply.code(404).send({ error: 'Hooks disabled' });
+          return;
+        }
+
+        const token =
+          request.headers['x-hook-token'] ||
+          (request.query as any)?.token ||
+          (request.headers.authorization?.startsWith('Bearer ')
+            ? request.headers.authorization.substring(7)
+            : undefined);
+
+        if (!this.hookToken || token !== this.hookToken) {
+          reply.code(401).send({ error: 'Invalid hook token' });
+          return;
+        }
+        return;
+      }
+
       if (request.url === '/api/v1/health') {
         return;
       }
@@ -65,6 +90,59 @@ export class ApiServer {
         version: '0.1.0',
         uptime_seconds: process.uptime(),
       };
+    });
+
+    this.server.post('/hooks/gmail', async (request) => {
+      if (!this.gmailService) {
+        return { ok: false, error: 'Gmail service not configured' };
+      }
+
+      const body: any = request.body || {};
+      const messages = Array.isArray(body.messages)
+        ? body.messages
+        : body.message
+          ? [body.message]
+          : body.from || body.subject
+            ? [body]
+            : [];
+
+      if (messages.length === 0) {
+        return { ok: false, error: 'No messages provided' };
+      }
+
+      const rules = this.config.hooks.gmail.rules || [];
+      let actionsRun = 0;
+
+      for (const msg of messages) {
+        for (const rule of rules) {
+          if (!this.matchesRule(msg, rule.match)) {
+            continue;
+          }
+
+          for (const action of rule.actions) {
+            if (action.type === 'send_email') {
+              const subject = this.applyTemplate(
+                action.subject_template || 'FWD: {{subject}}',
+                msg
+              );
+              const bodyText = this.applyTemplate(
+                action.body_template || 'From: {{from}}\nSubject: {{subject}}\n\n{{body}}',
+                msg
+              );
+
+              await this.gmailService.send({
+                to: action.to,
+                subject,
+                body: bodyText,
+              });
+
+              actionsRun += 1;
+            }
+          }
+        }
+      }
+
+      return { ok: true, actions: actionsRun };
     });
 
     this.server.post<{ Body: { ttl_minutes?: number; is_admin?: boolean } }>(
@@ -195,5 +273,34 @@ export class ApiServer {
   async close(): Promise<void> {
     await this.server.close();
     this.logger.info('API server closed');
+  }
+
+  private matchesRule(message: any, match: any): boolean {
+    const from = String(message.from || message.sender || '').toLowerCase();
+    const subject = String(message.subject || '').toLowerCase();
+
+    if (match?.from && !from.includes(String(match.from).toLowerCase())) {
+      return false;
+    }
+
+    if (match?.subject_contains && !subject.includes(String(match.subject_contains).toLowerCase())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private applyTemplate(template: string, message: any): string {
+    const replacements: Record<string, string> = {
+      from: String(message.from || message.sender || ''),
+      subject: String(message.subject || ''),
+      snippet: String(message.snippet || ''),
+      body: String(message.body || message.snippet || ''),
+      id: String(message.id || ''),
+    };
+
+    return template.replace(/\{\{(\w+)\}\}/g, (_match, key) => {
+      return replacements[key] ?? '';
+    });
   }
 }

@@ -37,6 +37,13 @@ telegram:
   polling_timeout: 30
   max_concurrent_tasks: 5
 
+hooks:
+  enabled: false
+  token: "CHANGE_ME"
+  gmail:
+    enabled: false
+    rules: []
+
 tools:
   files_readonly:
     enabled: true

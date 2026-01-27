@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import { google } from 'googleapis';
 import { BaseTool } from '../base-tool.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool.js';
 import type { Logger } from '../../utils/logger.js';
+import { GmailService } from '../../core/integrations/gmail-service.js';
 
 export class GmailTool extends BaseTool {
+  private gmailService: GmailService;
+
   constructor(logger: Logger) {
     super(logger);
+    this.gmailService = new GmailService();
   }
 
   getName(): string {
@@ -43,54 +46,18 @@ export class GmailTool extends BaseTool {
     }
   }
 
-  private getAuth() {
-    const clientId = process.env.GMAIL_CLIENT_ID;
-    const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth2callback';
-    const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-
-    if (!clientId || !clientSecret || !refreshToken) {
-      throw new Error(
-        'Gmail OAuth is not configured. Set GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN.'
-      );
-    }
-
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    oauth2Client.setCredentials({ refresh_token: refreshToken });
-    return oauth2Client;
-  }
-
   private async sendEmail(params: { to: string; subject: string; body: string }): Promise<ToolExecutionResult> {
     try {
-      const auth = this.getAuth();
-      const gmail = google.gmail({ version: 'v1', auth });
-      const from = process.env.GMAIL_FROM;
-
-      const headers = [
-        from ? `From: ${from}` : undefined,
-        `To: ${params.to}`,
-        `Subject: ${params.subject}`,
-        'Content-Type: text/plain; charset="UTF-8"',
-      ].filter(Boolean);
-
-      const message = `${headers.join('\r\n')}\r\n\r\n${params.body}`;
-      const encodedMessage = Buffer.from(message)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      const result = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedMessage,
-        },
+      const result = await this.gmailService.send({
+        to: params.to,
+        subject: params.subject,
+        body: params.body,
       });
 
       return {
         success: true,
         data: {
-          message_id: result.data.id,
+          message_id: result.message_id,
           to: params.to,
           subject: params.subject,
         },

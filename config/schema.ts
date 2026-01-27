@@ -28,6 +28,31 @@ export const ConfigSchema = z.object({
     max_concurrent_tasks: z.number().int().min(1).max(20),
   }),
 
+  hooks: z.object({
+    enabled: z.boolean(),
+    token: z.string().min(1),
+    gmail: z.object({
+      enabled: z.boolean(),
+      rules: z.array(
+        z.object({
+          name: z.string(),
+          match: z.object({
+            from: z.string().optional(),
+            subject_contains: z.string().optional(),
+          }),
+          actions: z.array(
+            z.object({
+              type: z.literal('send_email'),
+              to: z.string().email(),
+              subject_template: z.string().optional(),
+              body_template: z.string().optional(),
+            })
+          ),
+        })
+      ),
+    }),
+  }),
+
   tools: z.object({
     files_readonly: z.object({
       enabled: z.boolean(),

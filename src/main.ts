@@ -22,6 +22,7 @@ import { RateLimiter } from './core/gateway/rate-limiter.js';
 import { Gateway } from './core/gateway/gateway.js';
 import { ApiServer } from './core/gateway/api-server.js';
 import { TelegramConnector } from './connectors/telegram/telegram-connector.js';
+import { GmailService } from './core/integrations/gmail-service.js';
 
 async function main() {
   const logger = createLogger();
@@ -107,6 +108,9 @@ async function main() {
       }
     );
 
+    const hookToken = getEnvVarOptional('HOOKS_TOKEN') || config.hooks.token;
+    const gmailService = config.hooks.gmail.enabled ? new GmailService() : null;
+
     const apiServer = new ApiServer(
       logger,
       pairingManager,
@@ -115,6 +119,9 @@ async function main() {
       auditRepo,
       pairingTokenRepo,
       permissionRepo,
+      config,
+      gmailService,
+      hookToken,
       adminApiToken,
       config.api.host,
       config.api.port
