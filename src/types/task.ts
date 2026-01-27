@@ -4,7 +4,7 @@ export const PlanStepSchema = z.object({
   id: z.string(),
   tool: z.string(),
   action: z.string(),
-  params: z.record(z.any()),
+  params: z.record(z.any()).optional().default({}),
   requires_confirmation: z.boolean().default(false),
   verification: z.object({
     type: z.enum(['file_exists', 'reminder_created', 'data_retrieved', 'none']),
