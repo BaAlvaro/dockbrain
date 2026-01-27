@@ -149,6 +149,18 @@ export class RemindersTool extends BaseTool {
     const lower = text.toLowerCase();
     const isTomorrow = lower.includes('mañana') || lower.includes('tomorrow');
     if (!isTomorrow) {
+      const inMinutes = text.match(/(?:en|in)\s+(\d{1,3})\s*(min|mins|minutos|minutes)/i);
+      if (inMinutes) {
+        const minutes = parseInt(inMinutes[1], 10);
+        const now = new Date();
+        const target = new Date(now.getTime() + minutes * 60 * 1000);
+        const msg = text
+          .replace(inMinutes[0], '')
+          .replace(/["“”]/g, '')
+          .trim() || text.trim();
+        return { message: msg, remind_at: target.toISOString() };
+      }
+
       return { message: text.trim() };
     }
 
