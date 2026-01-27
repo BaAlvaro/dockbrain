@@ -3,13 +3,14 @@ import { BaseTool } from '../base-tool.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool.js';
 import type { Logger } from '../../utils/logger.js';
 import { GmailService } from '../../core/integrations/gmail-service.js';
+import type { ConfigStoreRepository } from '../../persistence/repositories/config-store-repository.js';
 
 export class GmailTool extends BaseTool {
   private gmailService: GmailService;
 
-  constructor(logger: Logger) {
+  constructor(logger: Logger, configStore?: ConfigStoreRepository) {
     super(logger);
-    this.gmailService = new GmailService();
+    this.gmailService = new GmailService(configStore);
   }
 
   getName(): string {

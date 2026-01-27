@@ -9,6 +9,7 @@ import { TaskRepository } from './persistence/repositories/task-repository.js';
 import { ReminderRepository } from './persistence/repositories/reminder-repository.js';
 import { AuditRepository } from './persistence/repositories/audit-repository.js';
 import { PairingTokenRepository } from './persistence/repositories/pairing-token-repository.js';
+import { ConfigStoreRepository } from './persistence/repositories/config-store-repository.js';
 import { PermissionManager } from './core/security/permission-manager.js';
 import { PairingManager } from './core/security/pairing-manager.js';
 import { AuditLogger } from './core/security/audit-logger.js';
@@ -66,7 +67,8 @@ async function main() {
     );
     const auditLogger = new AuditLogger(auditRepo, logger);
 
-    const toolRegistry = new ToolRegistry(logger, reminderRepo, config, safeRootDir);
+    const configStore = new ConfigStoreRepository(db);
+    const toolRegistry = new ToolRegistry(logger, reminderRepo, config, safeRootDir, configStore);
 
     const llmProvider = createLLMProvider(config, logger);
     const agentRuntime = new AgentRuntime(
@@ -108,8 +110,14 @@ async function main() {
       }
     );
 
-    const hookToken = getEnvVarOptional('HOOKS_TOKEN') || config.hooks.token;
-    const gmailService = config.hooks.gmail.enabled ? new GmailService() : null;
+    const hookToken =
+      getEnvVarOptional('HOOKS_TOKEN') ||
+      configStore.get('hooks.token') ||
+      config.hooks.token;
+    const gmailService =
+      config.hooks.gmail.enabled || configStore.get('hooks.gmail.enabled') === 'true'
+        ? new GmailService(configStore)
+        : null;
 
     const apiServer = new ApiServer(
       logger,
@@ -122,6 +130,7 @@ async function main() {
       config,
       gmailService,
       hookToken,
+      configStore,
       adminApiToken,
       config.api.host,
       config.api.port
@@ -133,7 +142,8 @@ async function main() {
       pairingManager,
       permissionManager,
       userRepo,
-      telegramBotToken
+      telegramBotToken,
+      configStore
     );
 
     await telegramConnector.start();

@@ -3,6 +3,7 @@ import type { ToolDescriptor } from '../types/tool.js';
 import type { Logger } from '../utils/logger.js';
 import type { ReminderRepository } from '../persistence/repositories/reminder-repository.js';
 import type { AppConfig } from '../../config/schema.js';
+import type { ConfigStoreRepository } from '../persistence/repositories/config-store-repository.js';
 import { FilesReadonlyTool } from './files-readonly/tool.js';
 import { RemindersTool } from './reminders/tool.js';
 import { WebSandboxTool } from './web-sandbox/tool.js';
@@ -17,7 +18,8 @@ export class ToolRegistry {
     private logger: Logger,
     reminderRepo: ReminderRepository,
     config: AppConfig,
-    safeRootDir: string
+    safeRootDir: string,
+    configStore?: ConfigStoreRepository
   ) {
     if (config.tools.files_readonly.enabled) {
       this.register(
@@ -59,8 +61,8 @@ export class ToolRegistry {
       this.register(new EmailTool(logger));
     }
 
-    if (config.tools.gmail.enabled) {
-      this.register(new GmailTool(logger));
+    if (config.tools.gmail.enabled || configStore?.get('gmail.refresh_token') || process.env.GMAIL_REFRESH_TOKEN) {
+      this.register(new GmailTool(logger, configStore));
     }
 
     this.logger.info(

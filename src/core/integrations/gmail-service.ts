@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import type { ConfigStoreRepository } from '../../persistence/repositories/config-store-repository.js';
 
 export type GmailSendInput = {
   to: string;
@@ -10,15 +11,23 @@ export type GmailSendInput = {
 export class GmailService {
   private authClient: any | null = null;
 
+  constructor(private configStore?: ConfigStoreRepository) {}
+
   private getAuth() {
     if (this.authClient) {
       return this.authClient;
     }
 
-    const clientId = process.env.GMAIL_CLIENT_ID;
-    const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth2callback';
-    const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+    const clientId =
+      this.configStore?.get('gmail.client_id') || process.env.GMAIL_CLIENT_ID;
+    const clientSecret =
+      this.configStore?.get('gmail.client_secret') || process.env.GMAIL_CLIENT_SECRET;
+    const redirectUri =
+      this.configStore?.get('gmail.redirect_uri') ||
+      process.env.GMAIL_REDIRECT_URI ||
+      'http://localhost:3000/oauth2callback';
+    const refreshToken =
+      this.configStore?.get('gmail.refresh_token') || process.env.GMAIL_REFRESH_TOKEN;
 
     if (!clientId || !clientSecret || !refreshToken) {
       throw new Error(
@@ -35,7 +44,8 @@ export class GmailService {
   async send(input: GmailSendInput): Promise<{ message_id?: string }> {
     const auth = this.getAuth();
     const gmail = google.gmail({ version: 'v1', auth });
-    const from = input.from || process.env.GMAIL_FROM;
+    const from =
+      input.from || this.configStore?.get('gmail.from') || process.env.GMAIL_FROM;
 
     const headers = [
       from ? `From: ${from}` : undefined,

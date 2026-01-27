@@ -9,6 +9,7 @@ import type { PairingTokenRepository } from '../../persistence/repositories/pair
 import type { PermissionRepository } from '../../persistence/repositories/permission-repository.js';
 import type { AppConfig } from '../../../config/schema.js';
 import { GmailService } from '../integrations/gmail-service.js';
+import type { ConfigStoreRepository } from '../../persistence/repositories/config-store-repository.js';
 
 export class ApiServer {
   private server: FastifyInstance;
@@ -25,6 +26,7 @@ export class ApiServer {
     private config: AppConfig,
     private gmailService: GmailService | null,
     private hookToken: string | null,
+    private configStore: ConfigStoreRepository,
     adminToken: string,
     host: string = '127.0.0.1',
     port: number = 3000
@@ -48,10 +50,18 @@ export class ApiServer {
   private setupRoutes(): void {
     this.server.addHook('preHandler', async (request, reply) => {
       if (request.url.startsWith('/hooks/gmail')) {
-        if (!this.config.hooks.enabled || !this.config.hooks.gmail.enabled) {
+        const hooksEnabled =
+          this.configStore.get('hooks.enabled') === 'true' || this.config.hooks.enabled;
+        const gmailEnabled =
+          this.configStore.get('hooks.gmail.enabled') === 'true' || this.config.hooks.gmail.enabled;
+
+        if (!hooksEnabled || !gmailEnabled) {
           reply.code(404).send({ error: 'Hooks disabled' });
           return;
         }
+
+        const configuredToken =
+          this.configStore.get('hooks.token') || this.hookToken;
 
         const token =
           request.headers['x-hook-token'] ||
@@ -60,7 +70,7 @@ export class ApiServer {
             ? request.headers.authorization.substring(7)
             : undefined);
 
-        if (!this.hookToken || token !== this.hookToken) {
+        if (!configuredToken || token !== configuredToken) {
           reply.code(401).send({ error: 'Invalid hook token' });
           return;
         }
@@ -110,7 +120,10 @@ export class ApiServer {
         return { ok: false, error: 'No messages provided' };
       }
 
-      const rules = this.config.hooks.gmail.rules || [];
+      const rules =
+        this.configStore.getJson('hooks.gmail.rules') ||
+        this.config.hooks.gmail.rules ||
+        [];
       let actionsRun = 0;
 
       for (const msg of messages) {

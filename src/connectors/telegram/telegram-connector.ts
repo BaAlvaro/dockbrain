@@ -5,6 +5,8 @@ import type { PairingManager } from '../../core/security/pairing-manager.js';
 import type { PermissionManager } from '../../core/security/permission-manager.js';
 import type { UserRepository } from '../../persistence/repositories/user-repository.js';
 import type { IncomingMessage } from '../../types/message.js';
+import type { ConfigStoreRepository } from '../../persistence/repositories/config-store-repository.js';
+import { google } from 'googleapis';
 
 export class TelegramConnector {
   private bot: Bot;
@@ -15,7 +17,8 @@ export class TelegramConnector {
     private pairingManager: PairingManager,
     private permissionManager: PermissionManager,
     private userRepo: UserRepository,
-    botToken: string
+    botToken: string,
+    private configStore: ConfigStoreRepository
   ) {
     this.bot = new Bot(botToken);
     this.setupHandlers();
@@ -36,6 +39,30 @@ export class TelegramConnector {
 
     this.bot.command('status', async (ctx) => {
       await this.handleStatus(ctx);
+    });
+
+    this.bot.command('gmail_setup', async (ctx) => {
+      await this.handleGmailSetup(ctx);
+    });
+
+    this.bot.command('gmail_connect', async (ctx) => {
+      await this.handleGmailConnect(ctx);
+    });
+
+    this.bot.command('gmail_code', async (ctx) => {
+      await this.handleGmailCode(ctx);
+    });
+
+    this.bot.command('gmail_rule_add', async (ctx) => {
+      await this.handleGmailRuleAdd(ctx);
+    });
+
+    this.bot.command('gmail_rules', async (ctx) => {
+      await this.handleGmailRules(ctx);
+    });
+
+    this.bot.command('gmail_rule_clear', async (ctx) => {
+      await this.handleGmailRuleClear(ctx);
     });
 
     this.bot.on('message:text', async (ctx) => {
@@ -148,6 +175,142 @@ export class TelegramConnector {
       `Rate limit: ${user.rate_limit_per_minute} messages/minute\n` +
       `Paired since: ${new Date(user.paired_at).toLocaleString()}`
     );
+  }
+
+  private async handleGmailSetup(ctx: Context): Promise<void> {
+    const args = ctx.message?.text?.split(' ').slice(1) || [];
+    const clientId = args[0];
+    const clientSecret = args[1];
+    const from = args.slice(2).join(' ') || undefined;
+
+    if (!clientId || !clientSecret) {
+      await ctx.reply('Usage: /gmail_setup <client_id> <client_secret> [from_email]');
+      return;
+    }
+
+    this.configStore.set('gmail.client_id', clientId);
+    this.configStore.set('gmail.client_secret', clientSecret);
+    this.configStore.set('gmail.redirect_uri', 'http://localhost:3000/oauth2callback');
+    if (from) {
+      this.configStore.set('gmail.from', from);
+    }
+
+    await ctx.reply('Gmail OAuth client saved. Now run /gmail_connect to authorize.');
+  }
+
+  private async handleGmailConnect(ctx: Context): Promise<void> {
+    const clientId = this.configStore.get('gmail.client_id');
+    const clientSecret = this.configStore.get('gmail.client_secret');
+    const redirectUri =
+      this.configStore.get('gmail.redirect_uri') || 'http://localhost:3000/oauth2callback';
+
+    if (!clientId || !clientSecret) {
+      await ctx.reply('Missing client credentials. Use /gmail_setup first.');
+      return;
+    }
+
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['https://www.googleapis.com/auth/gmail.send'],
+      prompt: 'consent',
+    });
+
+    await ctx.reply(
+      'Open this link to authorize Gmail:\n' +
+        authUrl +
+        '\n\nAfter approving, paste the code using:\n/gmail_code <code>'
+    );
+  }
+
+  private async handleGmailCode(ctx: Context): Promise<void> {
+    const args = ctx.message?.text?.split(' ').slice(1) || [];
+    const code = args[0];
+    if (!code) {
+      await ctx.reply('Usage: /gmail_code <code>');
+      return;
+    }
+
+    const clientId = this.configStore.get('gmail.client_id');
+    const clientSecret = this.configStore.get('gmail.client_secret');
+    const redirectUri =
+      this.configStore.get('gmail.redirect_uri') || 'http://localhost:3000/oauth2callback';
+
+    if (!clientId || !clientSecret) {
+      await ctx.reply('Missing client credentials. Use /gmail_setup first.');
+      return;
+    }
+
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    try {
+      const { tokens } = await oauth2Client.getToken(code.trim());
+      if (!tokens.refresh_token) {
+        await ctx.reply('No refresh token returned. Try /gmail_connect again.');
+        return;
+      }
+      this.configStore.set('gmail.refresh_token', tokens.refresh_token);
+      this.configStore.set('hooks.enabled', 'true');
+      this.configStore.set('hooks.gmail.enabled', 'true');
+
+      await ctx.reply('Gmail connected ✅ You can now send emails via Telegram.');
+    } catch (error: any) {
+      await ctx.reply(`Gmail auth failed: ${error.message}`);
+    }
+  }
+
+  private async handleGmailRuleAdd(ctx: Context): Promise<void> {
+    const text = ctx.message?.text || '';
+    const args = text.split(' ').slice(1).join(' ');
+    const fromMatch = args.match(/from=([^\s]+)/i);
+    const toMatch = args.match(/to=([^\s]+)/i);
+    const subjectMatch = args.match(/subject=([^\s]+)/i);
+
+    if (!fromMatch || !toMatch) {
+      await ctx.reply('Usage: /gmail_rule_add from=example.com to=you@email.com [subject=keyword]');
+      return;
+    }
+
+    const rules = this.configStore.getJson('hooks.gmail.rules') || [];
+    rules.push({
+      name: `rule_${Date.now()}`,
+      match: {
+        from: fromMatch[1],
+        subject_contains: subjectMatch ? subjectMatch[1] : undefined,
+      },
+      actions: [
+        {
+          type: 'send_email',
+          to: toMatch[1],
+          subject_template: 'FWD: {{subject}}',
+          body_template: 'From: {{from}}\nSubject: {{subject}}\n\n{{body}}',
+        },
+      ],
+    });
+
+    this.configStore.setJson('hooks.gmail.rules', rules);
+    await ctx.reply('Rule added ✅');
+  }
+
+  private async handleGmailRules(ctx: Context): Promise<void> {
+    const rules = this.configStore.getJson('hooks.gmail.rules') || [];
+    if (rules.length === 0) {
+      await ctx.reply('No Gmail rules configured.');
+      return;
+    }
+
+    const lines = rules.map((r: any, i: number) => {
+      const from = r.match?.from || '*';
+      const subject = r.match?.subject_contains || '*';
+      const to = r.actions?.[0]?.to || '?';
+      return `${i + 1}. from=${from} subject=${subject} -> to=${to}`;
+    });
+
+    await ctx.reply(`Gmail rules:\n${lines.join('\n')}`);
+  }
+
+  private async handleGmailRuleClear(ctx: Context): Promise<void> {
+    this.configStore.setJson('hooks.gmail.rules', []);
+    await ctx.reply('All Gmail rules cleared.');
   }
 
   private async handleMessage(ctx: Context): Promise<void> {
