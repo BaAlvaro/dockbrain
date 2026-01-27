@@ -8,6 +8,7 @@ import { RemindersTool } from './reminders/tool.js';
 import { WebSandboxTool } from './web-sandbox/tool.js';
 import { SystemInfoTool } from './system-info/tool.js';
 import { EmailTool } from './email/tool.js';
+import { GmailTool } from './gmail/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -56,6 +57,10 @@ export class ToolRegistry {
 
     if (config.tools.email.enabled) {
       this.register(new EmailTool(logger));
+    }
+
+    if (config.tools.gmail.enabled) {
+      this.register(new GmailTool(logger));
     }
 
     this.logger.info(

@@ -64,3 +64,6 @@ tools:
 
   email:
     enabled: false
+
+  gmail:
+    enabled: false

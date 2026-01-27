@@ -49,6 +49,9 @@ export const ConfigSchema = z.object({
     email: z.object({
       enabled: z.boolean(),
     }),
+    gmail: z.object({
+      enabled: z.boolean(),
+    }),
   }),
 });
 
