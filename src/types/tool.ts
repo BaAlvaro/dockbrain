@@ -3,6 +3,7 @@ import { z } from 'zod';
 export interface ToolExecutionContext {
   user_id: number;
   task_id: string;
+  user_message?: string;
 }
 
 export interface ToolDescriptor {

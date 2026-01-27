@@ -27,8 +27,8 @@ export class RemindersTool extends BaseTool {
       create: {
         description: 'Create a new reminder',
         parameters: z.object({
-          message: z.string().min(1).max(500),
-          remind_at: z.string().datetime(), // ISO 8601
+          message: z.string().min(1).max(500).optional(),
+          remind_at: z.string().datetime().optional(), // ISO 8601
         }),
       },
       list: {
@@ -65,6 +65,15 @@ export class RemindersTool extends BaseTool {
     params: { message: string; remind_at: string },
     context: ToolExecutionContext
   ): ToolExecutionResult {
+    const normalized = this.normalizeReminderParams(params, context.user_message);
+    if (!normalized.message || !normalized.remind_at) {
+      return {
+        success: false,
+        error:
+          'Missing reminder details. Please include a message and time, e.g. "Recuérdame mañana a las 10am comprar leche".',
+      };
+    }
+
     const count = this.reminderRepo.countByUserId(context.user_id);
 
     if (count >= this.maxRemindersPerUser) {
@@ -74,7 +83,7 @@ export class RemindersTool extends BaseTool {
       };
     }
 
-    const remindAt = new Date(params.remind_at).getTime();
+    const remindAt = new Date(normalized.remind_at).getTime();
 
     if (remindAt <= Date.now()) {
       return {
@@ -86,7 +95,7 @@ export class RemindersTool extends BaseTool {
     const reminder = this.reminderRepo.create({
       id: generateReminderId(),
       user_id: context.user_id,
-      message: params.message,
+      message: normalized.message,
       remind_at: remindAt,
       created_by_task_id: context.task_id,
     });
@@ -98,6 +107,66 @@ export class RemindersTool extends BaseTool {
         message: reminder.message,
         remind_at: new Date(reminder.remind_at).toISOString(),
       },
+    };
+  }
+
+  private normalizeReminderParams(
+    params: { message?: string; remind_at?: string },
+    userMessage?: string
+  ): { message?: string; remind_at?: string } {
+    const message = params.message?.trim();
+    const remindAt = params.remind_at?.trim();
+
+    if (message && remindAt) {
+      return { message, remind_at: remindAt };
+    }
+
+    if (!userMessage) {
+      return { message, remind_at: remindAt };
+    }
+
+    const inferred = this.inferFromText(userMessage);
+    return {
+      message: message || inferred.message,
+      remind_at: remindAt || inferred.remind_at,
+    };
+  }
+
+  private inferFromText(text: string): { message?: string; remind_at?: string } {
+    const lower = text.toLowerCase();
+    const isTomorrow = lower.includes('mañana') || lower.includes('tomorrow');
+    if (!isTomorrow) {
+      return { message: text.trim() };
+    }
+
+    const timeRegex =
+      /(?:mañana|tomorrow)(?:\s+a\s+las|\s+at)?\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i;
+    const match = text.match(timeRegex);
+    if (!match) {
+      return { message: text.trim() };
+    }
+
+    let hour = parseInt(match[1], 10);
+    const minute = match[2] ? parseInt(match[2], 10) : 0;
+    const meridiem = match[3]?.toLowerCase();
+
+    if (meridiem === 'pm' && hour < 12) hour += 12;
+    if (meridiem === 'am' && hour === 12) hour = 0;
+
+    const now = new Date();
+    const target = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      hour,
+      minute,
+      0,
+      0
+    );
+
+    return {
+      message: text.trim(),
+      remind_at: target.toISOString(),
     };
   }
 

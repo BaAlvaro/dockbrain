@@ -112,7 +112,8 @@ export class TaskEngine {
         task.id,
         task.user_id,
         task.plan.steps,
-        permissionSnapshot
+        permissionSnapshot,
+        task.input_message
       );
 
       task.execution_log = executionLog;

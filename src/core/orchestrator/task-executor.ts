@@ -15,12 +15,13 @@ export class TaskExecutor {
     taskId: string,
     userId: number,
     steps: PlanStep[],
-    permissionSnapshot: PermissionSnapshot
+    permissionSnapshot: PermissionSnapshot,
+    userMessage?: string
   ): Promise<ExecutionLog> {
     const executionLog: ExecutionLog = { steps: [] };
 
     for (const step of steps) {
-      const stepLog = await this.executeStep(taskId, userId, step, permissionSnapshot);
+      const stepLog = await this.executeStep(taskId, userId, step, permissionSnapshot, userMessage);
       executionLog.steps.push(stepLog);
 
       if (stepLog.status === 'error') {
@@ -36,7 +37,8 @@ export class TaskExecutor {
     taskId: string,
     userId: number,
     step: PlanStep,
-    permissionSnapshot: PermissionSnapshot
+    permissionSnapshot: PermissionSnapshot,
+    userMessage?: string
   ): Promise<StepLog> {
     const stepLog: StepLog = {
       id: step.id,
@@ -64,6 +66,7 @@ export class TaskExecutor {
       const result = await tool.execute(step.action, step.params, {
         user_id: userId,
         task_id: taskId,
+        user_message: userMessage,
       });
 
       if (!result.success) {
