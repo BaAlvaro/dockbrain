@@ -28,7 +28,7 @@ export class RemindersTool extends BaseTool {
         description: 'Create a new reminder',
         parameters: z.object({
           message: z.string().min(1).max(500).optional(),
-          remind_at: z.string().datetime().optional(), // ISO 8601
+          remind_at: z.string().optional(), // ISO 8601
         }),
       },
       list: {
