@@ -1,14 +1,10 @@
 import { readFileSync } from 'fs';
 import { parse } from 'yaml';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { ConfigSchema, type AppConfig } from '../../config/schema.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 export function loadConfig(): AppConfig {
-  const configPath = join(__dirname, '..', '..', 'config', 'default.yaml');
+  const configPath = process.env.CONFIG_PATH || join(process.cwd(), 'config', 'default.yaml');
   const configFile = readFileSync(configPath, 'utf-8');
   const rawConfig = parse(configFile);
 
