@@ -1,6 +1,15 @@
 import type { LLMProvider, LLMRequest, LLMResponse } from '../llm-provider.js';
 import type { Logger } from '../../../utils/logger.js';
 
+type OpenAIChatResponse = {
+  choices: Array<{ message: { content: string } }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+};
+
 export class OpenAIProvider implements LLMProvider {
   private apiKey: string;
   private model: string;
@@ -41,7 +50,7 @@ export class OpenAIProvider implements LLMProvider {
         throw new Error(`OpenAI API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as OpenAIChatResponse;
 
       return {
         content: data.choices[0].message.content,

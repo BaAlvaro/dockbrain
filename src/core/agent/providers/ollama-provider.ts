@@ -1,6 +1,17 @@
 import type { LLMProvider, LLMRequest, LLMResponse } from '../llm-provider.js';
 import type { Logger } from '../../../utils/logger.js';
 
+type OllamaGenerateResponse = {
+  response: string;
+  total_duration?: number;
+  prompt_eval_count?: number;
+  eval_count?: number;
+};
+
+type OllamaTagsResponse = {
+  models?: Array<{ name: string }>;
+};
+
 export class OllamaProvider implements LLMProvider {
   private baseUrl: string;
   private model: string;
@@ -45,7 +56,7 @@ export class OllamaProvider implements LLMProvider {
         throw new Error(`Ollama API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as OllamaGenerateResponse;
 
       this.logger.debug(
         {
@@ -97,12 +108,12 @@ export class OllamaProvider implements LLMProvider {
         return false;
       }
 
-      const data = await response.json();
-      const modelExists = data.models?.some((m: any) => m.name === this.model);
+      const data = (await response.json()) as OllamaTagsResponse;
+      const modelExists = data.models?.some((m) => m.name === this.model);
 
       if (!modelExists) {
         this.logger.warn(
-          { model: this.model, availableModels: data.models?.map((m: any) => m.name) },
+          { model: this.model, availableModels: data.models?.map((m) => m.name) },
           'Configured model not found in Ollama'
         );
       }

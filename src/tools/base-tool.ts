@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { ToolExecutionContext, ToolExecutionResult, ToolDescriptor } from '../types/tool.js';
 import type { Logger } from '../utils/logger.js';
 

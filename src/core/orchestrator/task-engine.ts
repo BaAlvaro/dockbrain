@@ -1,7 +1,6 @@
-import type { Task, TaskStatus } from '../../persistence/repositories/task-repository.js';
+import type { Task } from '../../persistence/repositories/task-repository.js';
 import type { TaskRepository } from '../../persistence/repositories/task-repository.js';
 import type { PermissionRepository } from '../../persistence/repositories/permission-repository.js';
-import type { UserRepository } from '../../persistence/repositories/user-repository.js';
 import type { AgentRuntime } from '../agent/agent-runtime.js';
 import type { ToolRegistry } from '../../tools/registry.js';
 import type { PermissionManager } from '../security/permission-manager.js';
@@ -18,9 +17,8 @@ export class TaskEngine {
 
   constructor(
     private taskRepo: TaskRepository,
-    private userRepo: UserRepository,
     private permissionRepo: PermissionRepository,
-    private reminderRepo: ReminderRepository,
+    reminderRepo: ReminderRepository,
     private agentRuntime: AgentRuntime,
     private toolRegistry: ToolRegistry,
     private permissionManager: PermissionManager,

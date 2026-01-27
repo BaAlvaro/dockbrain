@@ -28,8 +28,8 @@ export class SystemInfoTool extends BaseTool {
 
   protected async executeAction(
     action: string,
-    params: any,
-    context: ToolExecutionContext
+    _params: any,
+    _context: ToolExecutionContext
   ): Promise<ToolExecutionResult> {
     switch (action) {
       case 'get':

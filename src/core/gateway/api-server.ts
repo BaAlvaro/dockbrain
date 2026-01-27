@@ -2,7 +2,6 @@ import Fastify, { FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
 import type { Logger } from '../../utils/logger.js';
 import type { PairingManager } from '../security/pairing-manager.js';
-import type { PermissionManager } from '../security/permission-manager.js';
 import type { UserRepository } from '../../persistence/repositories/user-repository.js';
 import type { TaskRepository } from '../../persistence/repositories/task-repository.js';
 import type { AuditRepository } from '../../persistence/repositories/audit-repository.js';
@@ -16,7 +15,6 @@ export class ApiServer {
   constructor(
     private logger: Logger,
     private pairingManager: PairingManager,
-    private permissionManager: PermissionManager,
     private userRepo: UserRepository,
     private taskRepo: TaskRepository,
     private auditRepo: AuditRepository,

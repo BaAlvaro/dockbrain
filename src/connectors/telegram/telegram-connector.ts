@@ -143,8 +143,6 @@ export class TelegramConnector {
       return;
     }
 
-    const permissions = await this.permissionManager.hasPermission(user.id, 'reminders', 'create');
-
     await ctx.reply(
       `Status: ${user.is_active ? 'Active ✅' : 'Inactive ❌'}\n` +
       `Rate limit: ${user.rate_limit_per_minute} messages/minute\n` +

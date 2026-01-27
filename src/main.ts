@@ -78,7 +78,6 @@ async function main() {
 
     const taskEngine = new TaskEngine(
       taskRepo,
-      userRepo,
       permissionRepo,
       reminderRepo,
       agentRuntime,
@@ -100,7 +99,7 @@ async function main() {
       taskEngine,
       rateLimiter,
       logger,
-      async (userId: number, taskId: string, result: string) => {
+      async (userId: number, _taskId: string, result: string) => {
         const user = userRepo.findById(userId);
         if (user && telegramConnector) {
           await telegramConnector.sendMessage(user.telegram_chat_id, result);
@@ -111,7 +110,6 @@ async function main() {
     const apiServer = new ApiServer(
       logger,
       pairingManager,
-      permissionManager,
       userRepo,
       taskRepo,
       auditRepo,
