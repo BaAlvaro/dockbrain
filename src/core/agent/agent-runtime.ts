@@ -1,4 +1,5 @@
 import type { LLMProvider, LLMMessage } from './llm-provider.js';
+import { z } from 'zod';
 import type { ToolRegistry } from '../../tools/registry.js';
 import type { ExecutionPlan } from '../../types/task.js';
 import type { Logger } from '../../utils/logger.js';
@@ -85,12 +86,26 @@ Generate a natural language response for the user.`;
   }
 
   private buildSystemPrompt(toolDescriptors: any[]): string {
+    const toolSummaries = toolDescriptors.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      actions: Object.fromEntries(
+        Object.entries(tool.actions).map(([actionName, action]: any) => [
+          actionName,
+          {
+            description: action.description,
+            params_schema: this.describeSchema(action.parameters),
+          },
+        ])
+      ),
+    }));
+
     return `You are DockBrain, a task execution planning assistant.
 
 Your role is to generate a structured execution plan in JSON format.
 
 Available tools:
-${JSON.stringify(toolDescriptors, null, 2)}
+${JSON.stringify(toolSummaries, null, 2)}
 
 CRITICAL RULES:
 1. Only use tools from the available tools list
@@ -122,5 +137,38 @@ Response format:
     return `User request: "${userMessage}"
 
 Generate the execution plan in JSON format.`;
+  }
+
+  private describeSchema(schema: z.ZodSchema): any {
+    if (schema instanceof z.ZodObject) {
+      const shape = schema.shape;
+      return Object.fromEntries(
+        Object.entries(shape).map(([key, value]) => [key, this.describeSchema(value as z.ZodSchema)])
+      );
+    }
+
+    if (schema instanceof z.ZodString) {
+      const checks = (schema as any)._def?.checks || [];
+      const hasDatetime = checks.some((check: any) => check.kind === 'datetime');
+      return hasDatetime ? 'string (ISO 8601 datetime)' : 'string';
+    }
+
+    if (schema instanceof z.ZodNumber) {
+      return 'number';
+    }
+
+    if (schema instanceof z.ZodBoolean) {
+      return 'boolean';
+    }
+
+    if (schema instanceof z.ZodArray) {
+      return `array<${this.describeSchema(schema.element)}>`;
+    }
+
+    if (schema instanceof z.ZodEnum) {
+      return `enum(${schema.options.join(', ')})`;
+    }
+
+    return 'unknown';
   }
 }
