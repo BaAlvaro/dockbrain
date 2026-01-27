@@ -116,18 +116,46 @@ if ! command -v node &> /dev/null; then
 else
     NODE_VERSION=$(node -v | cut -d 'v' -f 2 | cut -d '.' -f 1)
     if [ "$NODE_VERSION" -lt 20 ]; then
-        echo -e "${YELLOW}Node.js version is $NODE_VERSION, but 20+ is required.${NC}"
-        read -p "Upgrade Node.js? (y/n) " -n 1 -r
+        echo -e "${YELLOW}Node.js version is $NODE_VERSION, but 20.x-21.x is required.${NC}"
+        read -p "Upgrade to Node.js 20.x LTS? (y/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [ "$EUID" -ne 0 ]; then
+                echo -e "${RED}Need root privileges to install Node.js. Please run with sudo.${NC}"
+                exit 1
+            fi
+            install_build_tools
             install_nodejs
         else
-            echo -e "${RED}Node.js 20+ is required. Exiting.${NC}"
+            echo -e "${RED}Node.js 20.x-21.x is required. Exiting.${NC}"
+            exit 1
+        fi
+    elif [ "$NODE_VERSION" -ge 22 ]; then
+        echo -e "${YELLOW}Node.js version is $(node -v), but better-sqlite3 requires 20.x-21.x${NC}"
+        echo -e "${YELLOW}Node.js 22+ doesn't have prebuilt binaries yet.${NC}"
+        read -p "Downgrade to Node.js 20.x LTS? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [ "$EUID" -ne 0 ]; then
+                echo -e "${RED}Need root privileges to install Node.js. Please run with sudo.${NC}"
+                exit 1
+            fi
+            install_build_tools
+            install_nodejs
+        else
+            echo -e "${RED}Node.js 20.x-21.x is required. Exiting.${NC}"
             exit 1
         fi
     else
         echo -e "${GREEN}Node.js $(node -v) found.${NC}"
     fi
+fi
+
+# Always ensure build tools are installed (needed for native module compilation)
+if [ "$EUID" -eq 0 ]; then
+    echo ""
+    echo -e "${BLUE}Ensuring build tools are installed...${NC}"
+    install_build_tools
 fi
 
 # Check if Ollama is installed
@@ -172,7 +200,7 @@ cd "$INSTALL_DIR"
 # Install dependencies
 echo ""
 echo -e "${BLUE}Installing Node.js dependencies...${NC}"
-npm install --production
+npm install
 
 # Build TypeScript
 echo ""
