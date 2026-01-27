@@ -46,6 +46,9 @@ export const ConfigSchema = z.object({
     system_info: z.object({
       enabled: z.boolean(),
     }),
+    email: z.object({
+      enabled: z.boolean(),
+    }),
   }),
 });
 

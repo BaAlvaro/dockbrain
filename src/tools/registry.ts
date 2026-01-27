@@ -7,6 +7,7 @@ import { FilesReadonlyTool } from './files-readonly/tool.js';
 import { RemindersTool } from './reminders/tool.js';
 import { WebSandboxTool } from './web-sandbox/tool.js';
 import { SystemInfoTool } from './system-info/tool.js';
+import { EmailTool } from './email/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -51,6 +52,10 @@ export class ToolRegistry {
 
     if (config.tools.system_info.enabled) {
       this.register(new SystemInfoTool(logger));
+    }
+
+    if (config.tools.email.enabled) {
+      this.register(new EmailTool(logger));
     }
 
     this.logger.info(

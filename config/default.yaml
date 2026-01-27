@@ -61,3 +61,6 @@ tools:
 
   system_info:
     enabled: true
+
+  email:
+    enabled: false
