@@ -46,7 +46,43 @@ export class AgentRuntime {
     try {
       planData = JSON.parse(response.content);
     } catch (error) {
-      throw new Error('LLM response is not valid JSON');
+      // Try to extract JSON block if the model added extra text.
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          planData = JSON.parse(jsonMatch[0]);
+        } catch {
+          // fallthrough to retry
+        }
+      }
+
+      // One retry with strict instruction
+      const retryMessages: LLMMessage[] = [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content:
+            `${userPrompt}\n\nYour previous response was invalid JSON. ` +
+            `Return ONLY valid JSON, no extra text, no markdown.`,
+        },
+      ];
+
+      const retryResponse = await this.llmProvider.complete({
+        messages: retryMessages,
+        temperature: 0.1,
+        max_tokens: this.maxTokens,
+      });
+
+      try {
+        planData = JSON.parse(retryResponse.content);
+      } catch {
+        const retryJsonMatch = retryResponse.content.match(/\{[\s\S]*\}/);
+        if (retryJsonMatch) {
+          planData = JSON.parse(retryJsonMatch[0]);
+        } else {
+          throw new Error('LLM response is not valid JSON');
+        }
+      }
     }
 
     const validatedPlan = ExecutionPlanSchema.parse(planData);
