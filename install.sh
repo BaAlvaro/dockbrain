@@ -151,6 +151,9 @@ else
     fi
 fi
 
+# Resolve Node.js binary path (used for systemd ExecStart)
+NODE_BIN=$(command -v node || true)
+
 # Always ensure build tools are installed (needed for native module compilation)
 if [ "$EUID" -eq 0 ]; then
     echo ""
@@ -254,6 +257,11 @@ if [ "$SYSTEMD_SERVICE" = true ]; then
         SERVICE_USER="root"
     fi
 
+    if [ -z "$NODE_BIN" ]; then
+        echo -e "${RED}Cannot locate Node.js binary. Aborting systemd setup.${NC}"
+        exit 1
+    fi
+
     cat > /etc/systemd/system/dockbrain.service <<EOF
 [Unit]
 Description=DockBrain - Local-first task automation assistant
@@ -263,12 +271,13 @@ After=network.target
 Type=simple
 User=$SERVICE_USER
 WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/node $INSTALL_DIR/dist/main.js
+ExecStart=$NODE_BIN $INSTALL_DIR/dist/main.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=dockbrain
+EnvironmentFile=-$INSTALL_DIR/.env
 
 # Security hardening
 NoNewPrivileges=true
@@ -284,6 +293,8 @@ EOF
     systemctl daemon-reload
 
     echo -e "${GREEN}Systemd service created.${NC}"
+    systemctl enable dockbrain
+    systemctl restart dockbrain || true
     echo ""
     echo -e "${BLUE}Service commands:${NC}"
     echo "  Start:   sudo systemctl start dockbrain"
