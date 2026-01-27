@@ -66,6 +66,11 @@ export class TaskVerifier {
     stepLog: any,
     result: VerificationResult
   ): Promise<void> {
+    // If the action is a list/delete, don't enforce reminder_id existence.
+    if (step.action !== 'create') {
+      return;
+    }
+
     if (!stepLog.result?.reminder_id) {
       result.all_passed = false;
       result.failures.push(`Step ${step.id}: no reminder_id in result`);
