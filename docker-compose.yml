@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  dockbrain:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dockbrain:latest
+    container_name: dockbrain
+    restart: unless-stopped
+
+    # Environment variables (override with .env file)
+    env_file:
+      - .env
+
+    # Ports
+    ports:
+      - "3000:3000"
+
+    # Volumes for persistence
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+
+    # Networking
+    networks:
+      - dockbrain-network
+
+    # Resource limits (adjust based on your VPS)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Depends on Ollama if using local LLMs
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # Ollama service for local LLMs (optional)
+  # Comment out this section if using OpenAI or mock provider
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+
+    # Ports (only expose if you need external access)
+    ports:
+      - "11434:11434"
+
+    # GPU support (uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    # Volumes for model storage
+    volumes:
+      - ollama-data:/root/.ollama
+
+    # Networking
+    networks:
+      - dockbrain-network
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+# Networks
+networks:
+  dockbrain-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  ollama-data:
+    driver: local

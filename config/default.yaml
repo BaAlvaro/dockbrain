@@ -1,0 +1,63 @@
+# DockBrain Default Configuration
+
+security:
+  max_retry_attempts: 3
+  task_timeout_ms: 120000
+  pairing_token_ttl_minutes: 60
+  rate_limit_per_minute: 10
+
+  # Allowed domains for web_sandbox tool
+  web_allowed_domains:
+    - "wikipedia.org"
+    - "github.com"
+    - "stackoverflow.com"
+
+  # Blocked IP ranges (private networks)
+  web_blocked_ip_ranges:
+    - "127.0.0.0/8"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+    - "::1/128"
+    - "fc00::/7"
+
+llm:
+  provider: "openai"
+  model: "gpt-4-turbo-preview"
+  temperature: 0.1
+  max_tokens: 1500
+  timeout_ms: 30000
+
+api:
+  host: "127.0.0.1"
+  port: 3000
+
+telegram:
+  polling_timeout: 30
+  max_concurrent_tasks: 5
+
+tools:
+  files_readonly:
+    enabled: true
+    max_file_size_mb: 10
+    allowed_extensions:
+      - ".txt"
+      - ".md"
+      - ".json"
+      - ".yaml"
+      - ".yml"
+      - ".csv"
+      - ".log"
+
+  reminders:
+    enabled: true
+    max_reminders_per_user: 50
+
+  web_sandbox:
+    enabled: true
+    timeout_ms: 5000
+    max_response_size_mb: 5
+
+  system_info:
+    enabled: true
