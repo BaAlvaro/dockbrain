@@ -96,6 +96,11 @@ export class AgentRuntime {
   }
 
   async generateFinalResponse(userMessage: string, executionLog: any): Promise<string> {
+    const toolResponse = this.tryBuildToolResponse(executionLog);
+    if (toolResponse) {
+      return toolResponse;
+    }
+
     const systemPrompt = `You are DockBrain, a helpful task execution assistant.
 Generate a friendly, concise response to the user based on the execution results.
 Keep it short (2-3 sentences maximum). Use the user's language.`;
@@ -119,6 +124,51 @@ Generate a natural language response for the user.`;
     });
 
     return response.content.trim();
+  }
+
+  private tryBuildToolResponse(executionLog: any): string | null {
+    const steps = executionLog?.steps || [];
+    const lastStep = steps[steps.length - 1];
+    if (!lastStep || lastStep.status !== 'success') {
+      return null;
+    }
+
+    const result = lastStep.result || {};
+
+    if (result.reminder_id && result.remind_at && result.message) {
+      const date = new Date(result.remind_at);
+      const formatted = this.formatLocalDateTime(date);
+      return `Listo. Te recordaré: "${result.message}" el ${formatted}.`;
+    }
+
+    if (Array.isArray(result.reminders)) {
+      if (result.reminders.length === 0) {
+        return 'No tienes recordatorios activos.';
+      }
+
+      const lines = result.reminders.map((r: any) => {
+        const date = new Date(r.remind_at);
+        return `- ${r.message} (${this.formatLocalDateTime(date)})`;
+      });
+
+      return `Tus recordatorios:\n${lines.join('\n')}`;
+    }
+
+    return null;
+  }
+
+  private formatLocalDateTime(date: Date): string {
+    try {
+      return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return date.toISOString();
+    }
   }
 
   private buildSystemPrompt(toolDescriptors: any[]): string {
