@@ -17,6 +17,22 @@ describe('Message Deduplication', () => {
     const migrationPath = join(__dirname, '../../../src/persistence/migrations/001_initial_schema.sql');
     const migration = readFileSync(migrationPath, 'utf-8');
     db.exec(migration);
+
+    const now = Date.now();
+    db.prepare(
+      `INSERT INTO users (telegram_chat_id, username, display_name, paired_at, is_active, rate_limit_per_minute, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run('chat_1', 'user1', 'User 1', now, 1, 10, now, now);
+
+    db.prepare(
+      `INSERT INTO tasks (id, user_id, telegram_message_id, status, input_message, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run('task_1', 1, 1, 'planning', 'test', now, now);
+
+    db.prepare(
+      `INSERT INTO tasks (id, user_id, telegram_message_id, status, input_message, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run('task_2', 1, 2, 'planning', 'test', now, now);
   });
 
   it('should store dedup entry', () => {

@@ -68,6 +68,6 @@ export class GmailService {
       },
     });
 
-    return { message_id: result.data.id };
+    return { message_id: result.data.id ?? undefined };
   }
 }

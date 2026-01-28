@@ -94,10 +94,6 @@ export class RemindersTool extends BaseTool {
       }
     }
 
-    if (Number.isFinite(remindAt) && remindAt <= Date.now()) {
-      remindAt += 24 * 60 * 60 * 1000;
-    }
-
     if (!Number.isFinite(remindAt) || remindAt <= Date.now()) {
       return {
         success: false,

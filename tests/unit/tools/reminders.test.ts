@@ -27,6 +27,22 @@ describe('Reminders Tool', () => {
     reminderRepo = new ReminderRepository(db);
     logger = createLogger();
     tool = new RemindersTool(logger, reminderRepo, 50);
+
+    const now = Date.now();
+    db.prepare(
+      `INSERT INTO users (telegram_chat_id, username, display_name, paired_at, is_active, rate_limit_per_minute, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run('chat_1', 'user1', 'User 1', now, 1, 10, now, now);
+
+    db.prepare(
+      `INSERT INTO tasks (id, user_id, telegram_message_id, status, input_message, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run('test_task', 1, 1, 'planning', 'test', now, now);
+
+    db.prepare(
+      `INSERT INTO users (telegram_chat_id, username, display_name, paired_at, is_active, rate_limit_per_minute, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run('chat_2', 'user2', 'User 2', now, 1, 10, now, now);
   });
 
   it('should create a reminder', async () => {

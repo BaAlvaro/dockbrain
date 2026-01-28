@@ -5,7 +5,7 @@ import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool
 import type { Logger } from '../../utils/logger.js';
 
 export class EmailTool extends BaseTool {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: any | null = null;
 
   constructor(logger: Logger) {
     super(logger);
@@ -45,7 +45,7 @@ export class EmailTool extends BaseTool {
     }
   }
 
-  private buildTransporter(): nodemailer.Transporter {
+  private buildTransporter(): any {
     if (this.transporter) {
       return this.transporter;
     }
