@@ -111,7 +111,8 @@ prompt_llm_provider() {
     echo "  2) Ollama (local)"
     echo "  3) Mock (no LLM)"
     echo "  4) Codex login (ChatGPT account for Codex CLI)"
-    read -p "Choose [1-4] (default: 1): " -n 1 -r
+    echo "  5) Google Gemini API"
+    read -p "Choose [1-5] (default: 1): " -n 1 -r
     echo ""
     CHOICE=${REPLY:-1}
 
@@ -138,6 +139,23 @@ prompt_llm_provider() {
                 codex login --device-auth || true
             else
                 echo -e "${YELLOW}Codex CLI not installed. You can install later with: npm i -g @openai/codex${NC}"
+            fi
+            ;;
+        5)
+            set_env_var "LLM_PROVIDER" "gemini"
+            read -p "Enter GEMINI_API_KEY: " GEMINI_KEY
+            echo ""
+            if [ -n "$GEMINI_KEY" ]; then
+                set_env_var "GEMINI_API_KEY" "$GEMINI_KEY"
+            else
+                echo -e "${YELLOW}GEMINI_API_KEY not set. You can add it later in .env.${NC}"
+            fi
+            read -p "Enter GEMINI_MODEL (default: gemini-2.5-flash): " GEMINI_MODEL
+            echo ""
+            if [ -n "$GEMINI_MODEL" ]; then
+                set_env_var "GEMINI_MODEL" "$GEMINI_MODEL"
+            else
+                set_env_var "GEMINI_MODEL" "gemini-2.5-flash"
             fi
             ;;
         *)
