@@ -197,7 +197,29 @@ Muéstrame mis recordatorios
 Lee el archivo notas.txt
 Busca información sobre IA en Wikipedia
 Muéstrame info del sistema
+Crea archivo report.txt con contenido hola
+Reemplaza en report.txt la palabra hola por DockBrain
+Crea una carpeta DockbrainTeest
+Recuerda que mi proyecto se llama DockBrain
+Crea una sesión llamada research
+Envía a la sesión research: resume qué es Docker
 ```
+
+---
+
+## 🧰 Herramientas nuevas (Sprint 1)
+
+### Files Write (archivos)
+- write, append, edit, delete dentro de `SAFE_ROOT_DIR`
+
+### System Exec (comandos)
+- run_command, execute, bash (con allowlist y confirmación)
+
+### Memory
+- add, search (memoria persistente por usuario)
+
+### Sessions (multi‑agent)
+- spawn, list, send, destroy
 
 ---
 

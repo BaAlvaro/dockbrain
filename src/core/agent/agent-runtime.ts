@@ -6,6 +6,7 @@ import type { Logger } from '../../utils/logger.js';
 import { ExecutionPlanSchema } from '../../types/task.js';
 
 export interface PlanningContext {
+  user_id: number;
   user_message: string;
   available_tools: string[];
 }
@@ -16,7 +17,9 @@ export class AgentRuntime {
     private toolRegistry: ToolRegistry,
     private logger: Logger,
     private temperature: number = 0.1,
-    private maxTokens: number = 1500
+    private maxTokens: number = 1500,
+    private memoryManager?: { getUserMemory: (userId: number) => Promise<any> },
+    private memoryConfig?: { include_in_prompt: boolean; max_entries: number }
   ) {}
 
   async generatePlan(context: PlanningContext): Promise<ExecutionPlan> {
@@ -25,7 +28,8 @@ export class AgentRuntime {
       .filter((d) => d !== undefined);
 
     const systemPrompt = this.buildSystemPrompt(toolDescriptors);
-    const userPrompt = this.buildUserPrompt(context.user_message);
+    const memoryContext = await this.buildMemoryContext(context.user_id);
+    const userPrompt = this.buildUserPrompt(context.user_message, memoryContext);
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -220,13 +224,58 @@ Response format:
 }`;
   }
 
-  private buildUserPrompt(userMessage: string): string {
+  private buildUserPrompt(userMessage: string, memoryContext?: string): string {
+    const memoryBlock = memoryContext ? `\n\nUser memory context:\n${memoryContext}\n` : '';
     return `User request: "${userMessage}"
+${memoryBlock}
 
 If this does not require any tool (e.g., greeting or small talk), return:
 { "steps": [], "estimated_tools": [] }
 
 Generate the execution plan in JSON format.`;
+  }
+
+  private async buildMemoryContext(userId: number): Promise<string | null> {
+    if (!this.memoryManager || !this.memoryConfig?.include_in_prompt) {
+      return null;
+    }
+
+    try {
+      const memory = await this.memoryManager.getUserMemory(userId);
+      const profile = memory?.profile || {};
+      const memories = Array.isArray(memory?.memories) ? memory.memories : [];
+
+      const recent = memories.slice(-this.memoryConfig.max_entries).reverse();
+
+      const profileParts = [
+        profile.name ? `name=${profile.name}` : null,
+        profile.telegram ? `telegram=${profile.telegram}` : null,
+      ].filter(Boolean);
+
+      const lines: string[] = [];
+      if (profileParts.length > 0) {
+        lines.push(`Profile: ${profileParts.join(', ')}`);
+      }
+
+      const prefs = profile.preferences || {};
+      const prefKeys = Object.keys(prefs);
+      if (prefKeys.length > 0) {
+        const prefSummary = prefKeys.slice(0, 5).map((key) => `${key}=${String(prefs[key])}`);
+        lines.push(`Preferences: ${prefSummary.join(', ')}`);
+      }
+
+      if (recent.length > 0) {
+        lines.push('Recent memories:');
+        for (const entry of recent) {
+          lines.push(`- (${entry.category}) ${entry.content}`);
+        }
+      }
+
+      return lines.length > 0 ? lines.join('\n') : null;
+    } catch (error: any) {
+      this.logger.warn({ error, userId }, 'Failed to load memory context');
+      return null;
+    }
   }
 
   private describeSchema(schema: z.ZodSchema): any {

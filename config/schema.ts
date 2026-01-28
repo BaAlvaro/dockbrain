@@ -114,9 +114,12 @@ export const ConfigSchema = z.object({
     memory: z.object({
       enabled: z.boolean(),
       data_dir: z.string(),
+      include_in_prompt: z.boolean().default(true),
+      max_entries: z.number().int().min(1).max(50).default(10),
     }),
     sessions: z.object({
       enabled: z.boolean(),
+      data_dir: z.string(),
     }),
   }),
 });

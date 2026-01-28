@@ -65,12 +65,12 @@ export class SessionsTool extends BaseTool {
   }
 
   private async spawnSession(userId: number, name: string): Promise<ToolExecutionResult> {
-    const sessionId = this.sessionManager.createSession(userId, name);
+    const sessionId = await this.sessionManager.createSession(userId, name);
     return { success: true, data: { session_id: sessionId, name } };
   }
 
   private async listSessions(userId: number): Promise<ToolExecutionResult> {
-    const sessions = this.sessionManager.listSessions(userId).map((session) => ({
+    const sessions = (await this.sessionManager.listSessions(userId)).map((session) => ({
       session_id: session.id,
       name: session.name,
       created_at: session.createdAt,
@@ -84,17 +84,18 @@ export class SessionsTool extends BaseTool {
     sessionId: string,
     message: string
   ): Promise<ToolExecutionResult> {
-    const session = this.sessionManager.getSession(sessionId);
+    const session = await this.sessionManager.getSession(sessionId);
     if (!session || session.userId !== userId) {
       return { success: false, error: 'Session not found' };
     }
 
     const reply = await session.send(message);
+    await this.sessionManager.recordMessage(sessionId);
     return { success: true, data: { session_id: sessionId, reply } };
   }
 
   private async destroySession(userId: number, sessionId: string): Promise<ToolExecutionResult> {
-    const session = this.sessionManager.getSession(sessionId);
+    const session = await this.sessionManager.getSession(sessionId);
     if (!session || session.userId !== userId) {
       return { success: false, error: 'Session not found' };
     }

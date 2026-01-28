@@ -15,15 +15,21 @@ export class AgentSession {
     private temperature: number,
     private maxTokens: number,
     private logger: Logger,
-    systemPrompt?: string
+    systemPrompt?: string,
+    createdAt?: number,
+    initialMessages?: LLMMessage[]
   ) {
-    this.createdAt = Date.now();
-    this.messages.push({
-      role: 'system',
-      content:
-        systemPrompt ||
-        `You are DockBrain agent session "${name}". Be concise and helpful.`,
-    });
+    this.createdAt = createdAt ?? Date.now();
+    if (initialMessages && initialMessages.length > 0) {
+      this.messages = initialMessages;
+    } else {
+      this.messages.push({
+        role: 'system',
+        content:
+          systemPrompt ||
+          `You are DockBrain agent session "${name}". Be concise and helpful.`,
+      });
+    }
   }
 
   async send(message: string): Promise<string> {

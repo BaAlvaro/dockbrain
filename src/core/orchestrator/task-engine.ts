@@ -77,6 +77,7 @@ export class TaskEngine {
 
     try {
       const plan = await this.agentRuntime.generatePlan({
+        user_id: task.user_id,
         user_message: task.input_message,
         available_tools: availableTools,
       });

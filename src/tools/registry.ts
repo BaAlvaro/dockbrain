@@ -119,7 +119,8 @@ export class ToolRegistry {
         logger,
         llmProvider,
         config.llm.temperature,
-        config.llm.max_tokens
+        config.llm.max_tokens,
+        config.tools.sessions.data_dir
       );
       this.register(new SessionsTool(logger, sessionManager));
     }

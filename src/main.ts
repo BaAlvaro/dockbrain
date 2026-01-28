@@ -15,6 +15,7 @@ import { PairingManager } from './core/security/pairing-manager.js';
 import { AuditLogger } from './core/security/audit-logger.js';
 import { ToolRegistry } from './tools/registry.js';
 import { AgentRuntime } from './core/agent/agent-runtime.js';
+import { UserMemoryManager } from './core/memory/user-memory.js';
 import { MockLLMProvider } from './core/agent/providers/mock-provider.js';
 import { OpenAIProvider } from './core/agent/providers/openai-provider.js';
 import { OllamaProvider } from './core/agent/providers/ollama-provider.js';
@@ -79,12 +80,22 @@ async function main() {
       configStore,
       llmProvider
     );
+
+    const memoryManager = config.tools.memory.enabled
+      ? new UserMemoryManager(logger, config.tools.memory.data_dir)
+      : undefined;
+
     const agentRuntime = new AgentRuntime(
       llmProvider,
       toolRegistry,
       logger,
       config.llm.temperature,
-      config.llm.max_tokens
+      config.llm.max_tokens,
+      memoryManager,
+      {
+        include_in_prompt: config.tools.memory.include_in_prompt,
+        max_entries: config.tools.memory.max_entries,
+      }
     );
 
     const taskEngine = new TaskEngine(
