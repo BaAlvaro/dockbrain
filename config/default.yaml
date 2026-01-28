@@ -57,6 +57,12 @@ tools:
       - ".csv"
       - ".log"
 
+  files_write:
+    enabled: false
+    max_file_size_mb: 10
+    backup_enabled: true
+    backup_dir_name: ".backups"
+
   reminders:
     enabled: true
     max_reminders_per_user: 50
@@ -96,6 +102,12 @@ tools:
   system_exec:
     enabled: false
     allowed_commands:
+      - "ls"
+      - "pwd"
+      - "cat"
+      - "grep"
+      - "find"
+      - "mkdir"
       - "date"
       - "uptime"
       - "whoami"
@@ -128,3 +140,10 @@ tools:
     max_output_bytes: 20000
     default_timeout_ms: 15000
     allowed_working_dirs: []
+
+  memory:
+    enabled: false
+    data_dir: "./data/memory"
+
+  sessions:
+    enabled: false

@@ -70,9 +70,15 @@ async function main() {
     const auditLogger = new AuditLogger(auditRepo, logger);
 
     const configStore = new ConfigStoreRepository(db);
-    const toolRegistry = new ToolRegistry(logger, reminderRepo, config, safeRootDir, configStore);
-
     const llmProvider = createLLMProvider(config, logger);
+    const toolRegistry = new ToolRegistry(
+      logger,
+      reminderRepo,
+      config,
+      safeRootDir,
+      configStore,
+      llmProvider
+    );
     const agentRuntime = new AgentRuntime(
       llmProvider,
       toolRegistry,

@@ -1,0 +1,73 @@
+import { z } from 'zod';
+import { BaseTool } from '../base-tool.js';
+import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool.js';
+import type { Logger } from '../../utils/logger.js';
+import { UserMemoryManager } from '../../core/memory/user-memory.js';
+
+export class MemoryTool extends BaseTool {
+  constructor(logger: Logger, private memoryManager: UserMemoryManager) {
+    super(logger);
+  }
+
+  getName(): string {
+    return 'memory';
+  }
+
+  getDescription(): string {
+    return 'Store and search user memories';
+  }
+
+  getActions() {
+    return {
+      add: {
+        description: 'Add a memory entry',
+        parameters: z.object({
+          content: z.string().min(1),
+          category: z.enum(['fact', 'preference', 'context']),
+          relevance: z.number().min(0).max(1).optional().default(0.5),
+        }),
+      },
+      search: {
+        description: 'Search memories by keyword',
+        parameters: z.object({
+          query: z.string().min(1),
+        }),
+      },
+    };
+  }
+
+  protected async executeAction(
+    action: string,
+    params: any,
+    context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> {
+    switch (action) {
+      case 'add':
+        return this.addMemory(context.user_id, params.content, params.category, params.relevance);
+      case 'search':
+        return this.searchMemory(context.user_id, params.query);
+      default:
+        return { success: false, error: 'Unknown action' };
+    }
+  }
+
+  private async addMemory(
+    userId: number,
+    content: string,
+    category: 'fact' | 'preference' | 'context',
+    relevance: number
+  ): Promise<ToolExecutionResult> {
+    const entry = await this.memoryManager.addMemory(userId, {
+      content,
+      category,
+      relevance,
+    });
+
+    return { success: true, data: { id: entry.id, timestamp: entry.timestamp } };
+  }
+
+  private async searchMemory(userId: number, query: string): Promise<ToolExecutionResult> {
+    const results = await this.memoryManager.searchMemories(userId, query);
+    return { success: true, data: { results } };
+  }
+}

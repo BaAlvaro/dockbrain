@@ -14,6 +14,12 @@ import { NetworkToolsTool } from './network-tools/tool.js';
 import { CodexAuthTool } from './codex-auth/tool.js';
 import { SystemExecTool } from './system-exec/tool.js';
 import { BrowserTool } from './browser/tool.js';
+import { FilesWriteTool } from './files-write/tool.js';
+import { MemoryTool } from './memory/tool.js';
+import { SessionsTool } from './sessions/tool.js';
+import type { LLMProvider } from '../core/agent/llm-provider.js';
+import { UserMemoryManager } from '../core/memory/user-memory.js';
+import { SessionManager } from '../core/orchestrator/session-manager.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -23,7 +29,8 @@ export class ToolRegistry {
     reminderRepo: ReminderRepository,
     config: AppConfig,
     safeRootDir: string,
-    configStore?: ConfigStoreRepository
+    configStore?: ConfigStoreRepository,
+    llmProvider?: LLMProvider
   ) {
     if (config.tools.files_readonly.enabled) {
       this.register(
@@ -32,6 +39,18 @@ export class ToolRegistry {
           safeRootDir,
           config.tools.files_readonly.max_file_size_mb,
           config.tools.files_readonly.allowed_extensions
+        )
+      );
+    }
+
+    if (config.tools.files_write.enabled) {
+      this.register(
+        new FilesWriteTool(
+          logger,
+          safeRootDir,
+          config.tools.files_write.max_file_size_mb,
+          config.tools.files_write.backup_enabled,
+          config.tools.files_write.backup_dir_name
         )
       );
     }
@@ -88,6 +107,21 @@ export class ToolRegistry {
           config.tools.browser.screenshot_dir
         )
       );
+    }
+
+    if (config.tools.memory.enabled) {
+      const memoryManager = new UserMemoryManager(logger, config.tools.memory.data_dir);
+      this.register(new MemoryTool(logger, memoryManager));
+    }
+
+    if (config.tools.sessions.enabled && llmProvider) {
+      const sessionManager = new SessionManager(
+        logger,
+        llmProvider,
+        config.llm.temperature,
+        config.llm.max_tokens
+      );
+      this.register(new SessionsTool(logger, sessionManager));
     }
 
     if (config.tools.codex_auth.enabled) {

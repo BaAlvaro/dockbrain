@@ -59,6 +59,12 @@ export const ConfigSchema = z.object({
       max_file_size_mb: z.number().min(1).max(100),
       allowed_extensions: z.array(z.string()),
     }),
+    files_write: z.object({
+      enabled: z.boolean(),
+      max_file_size_mb: z.number().min(1).max(100),
+      backup_enabled: z.boolean().default(true),
+      backup_dir_name: z.string().default('.backups'),
+    }),
     reminders: z.object({
       enabled: z.boolean(),
       max_reminders_per_user: z.number().int().min(1).max(1000),
@@ -104,6 +110,13 @@ export const ConfigSchema = z.object({
       max_output_bytes: z.number().int().min(1024).max(1024 * 1024).default(20000),
       default_timeout_ms: z.number().int().min(1000).max(120000).default(15000),
       allowed_working_dirs: z.array(z.string()).default([]),
+    }),
+    memory: z.object({
+      enabled: z.boolean(),
+      data_dir: z.string(),
+    }),
+    sessions: z.object({
+      enabled: z.boolean(),
     }),
   }),
 });
