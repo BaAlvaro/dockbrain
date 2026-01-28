@@ -147,6 +147,19 @@ export class BrowserTool extends BaseTool {
     } catch (error: any) {
       this.logger.warn({ error, configDir }, 'Failed to create puppeteer config dir');
     }
+
+    if (!process.env.PUPPETEER_CACHE_DIR) {
+      process.env.PUPPETEER_CACHE_DIR = path.join(process.cwd(), 'data', 'puppeteer-cache');
+    }
+
+    try {
+      await fs.mkdir(process.env.PUPPETEER_CACHE_DIR, { recursive: true });
+    } catch (error: any) {
+      this.logger.warn(
+        { error, cacheDir: process.env.PUPPETEER_CACHE_DIR },
+        'Failed to create puppeteer cache dir'
+      );
+    }
   }
 
   private async navigate(url: string, waitForSelector?: string): Promise<ToolExecutionResult> {
