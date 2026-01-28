@@ -6,6 +6,9 @@ export interface MemoryEntry {
   category: MemoryCategory;
   content: string;
   relevance: number;
+  key?: string;
+  value?: string;
+  normalized?: string;
 }
 
 export interface UserMemoryProfile {

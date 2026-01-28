@@ -27,6 +27,34 @@ describe('UserMemoryManager', () => {
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].content).toContain('DockBrain');
   });
+
+  it('dedupes repeated memories', async () => {
+    await manager.addMemory(1, {
+      category: 'fact',
+      content: 'Mi proyecto se llama DockBrain',
+      relevance: 0.8,
+    });
+    await manager.addMemory(1, {
+      category: 'fact',
+      content: 'Mi proyecto se llama DockBrain',
+      relevance: 0.6,
+    });
+
+    const memory = await manager.getUserMemory(1);
+    const entries = memory.memories.filter((entry) => entry.key === 'project_name');
+    expect(entries.length).toBe(1);
+  });
+
+  it('answers structured queries from profile', async () => {
+    await manager.addMemory(1, {
+      category: 'fact',
+      content: 'Mi proyecto se llama DockBrain',
+      relevance: 0.9,
+    });
+
+    const results = await manager.searchMemories(1, '¿Cómo se llama mi proyecto?');
+    expect(results[0].content.toLowerCase()).toContain('dockbrain');
+  });
 });
 
 describe('MemoryManager', () => {
@@ -52,6 +80,13 @@ describe('MemoryManager', () => {
     await manager.recordInteraction(1, 'hola', 'respuesta');
     const results = await manager.search(1, 'respuesta');
     expect(results.length).toBeGreaterThan(0);
+  });
+
+  it('skips auto-append for memory prompts and responses', async () => {
+    await manager.recordInteraction(1, 'Recuerda que mi proyecto se llama DockBrain', 'Listo. Lo recordaré: "DockBrain".');
+    const memory = await manager.getUserMemory(1);
+    const contexts = memory.memories.filter((entry) => entry.category === 'context');
+    expect(contexts.length).toBe(0);
   });
 
   it('searches with relevance ordering', async () => {

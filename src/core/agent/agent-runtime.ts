@@ -153,8 +153,14 @@ Generate a natural language response for the user.`;
       if (items.length === 0) {
         return 'No encontré recuerdos relacionados con eso.';
       }
-      const top = items.slice(0, 3).map((m: any) => `- ${m.content}`).join('\n');
-      return `Esto es lo que recuerdo:\n${top}`;
+      const top = items[0];
+      if (top?.key === 'project_name' && top?.value) {
+        return `Tu proyecto se llama ${top.value}.`;
+      }
+      if (top?.key === 'user_name' && top?.value) {
+        return `Tu nombre es ${top.value}.`;
+      }
+      return `Esto es lo que recuerdo: ${top?.content ?? ''}`.trim();
     }
 
     if (tool === 'files_write' && result.path) {

@@ -28,10 +28,41 @@ export class UserMemoryManager {
     memory: Omit<MemoryEntry, 'id' | 'timestamp'>
   ): Promise<MemoryEntry> {
     const userMemory = await this.getUserMemory(userId);
+    const normalized = this.normalizeContent(memory.content);
+    const extracted = this.extractStructuredMemory(memory.content);
+    const now = Date.now();
+
+    if (extracted?.profileUpdate) {
+      userMemory.profile = {
+        ...userMemory.profile,
+        ...extracted.profileUpdate,
+        preferences: {
+          ...userMemory.profile.preferences,
+          ...extracted.profileUpdate.preferences,
+        },
+      };
+    }
+
+    const existing = this.findExistingEntry(userMemory.memories, normalized, extracted?.key);
+    if (existing) {
+      existing.timestamp = now;
+      existing.relevance = Math.max(existing.relevance, memory.relevance);
+      if (extracted?.key) {
+        existing.key = extracted.key;
+        existing.value = extracted.value;
+      }
+      existing.content = memory.content;
+      existing.normalized = normalized;
+      await this.saveMemory(userId, userMemory);
+      return existing;
+    }
+
     const entry: MemoryEntry = {
       ...memory,
       id: this.generateId(),
-      timestamp: Date.now(),
+      timestamp: now,
+      normalized,
+      ...(extracted?.key ? { key: extracted.key, value: extracted.value } : {}),
     };
 
     userMemory.memories.push(entry);
@@ -46,6 +77,7 @@ export class UserMemoryManager {
   async searchMemories(userId: number, query: string): Promise<MemoryEntry[]> {
     const memory = await this.getUserMemory(userId);
     const keywords = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const structuredMatch = this.searchStructuredMemory(memory, query);
 
     const scored = memory.memories
       .map((entry) => {
@@ -59,7 +91,12 @@ export class UserMemoryManager {
       .sort((a, b) => b.score - a.score)
       .map((item) => item.entry);
 
-    return scored;
+    const deduped = this.dedupeEntries(scored);
+    if (structuredMatch) {
+      return [structuredMatch, ...deduped.filter((entry) => entry.key !== structuredMatch.key)];
+    }
+
+    return deduped;
   }
 
   private async createUserMemory(userId: number): Promise<UserMemory> {
@@ -88,5 +125,114 @@ export class UserMemoryManager {
 
   private generateId(): string {
     return `mem_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private normalizeContent(content: string): string {
+    return content
+      .trim()
+      .toLowerCase()
+      .replace(/[“”"']/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/[^\p{L}\p{N}\s:.-]/gu, '');
+  }
+
+  private dedupeEntries(entries: MemoryEntry[]): MemoryEntry[] {
+    const seen = new Set<string>();
+    return entries.filter((entry) => {
+      const key = entry.key ?? entry.normalized ?? entry.content;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private findExistingEntry(entries: MemoryEntry[], normalized: string, key?: string): MemoryEntry | undefined {
+    if (key) {
+      const byKey = entries.find((entry) => entry.key === key);
+      if (byKey) return byKey;
+    }
+    return entries.find((entry) => entry.normalized === normalized);
+  }
+
+  private extractStructuredMemory(content: string): {
+    key?: string;
+    value?: string;
+    profileUpdate?: Partial<UserMemory['profile']>;
+  } | null {
+    const projectMatch =
+      content.match(/mi proyecto (se llama|es)\s+(.+)/i) ||
+      content.match(/nombre del proyecto es\s+(.+)/i) ||
+      content.match(/the project name is\s+(.+)/i) ||
+      content.match(/my project is\s+(.+)/i);
+    if (projectMatch) {
+      const value = projectMatch[2] ?? projectMatch[1];
+      const cleanValue = value?.trim().replace(/[.。！!]+$/, '');
+      if (cleanValue) {
+        return {
+          key: 'project_name',
+          value: cleanValue,
+          profileUpdate: { preferences: { project_name: cleanValue } },
+        };
+      }
+    }
+
+    const nameMatch =
+      content.match(/mi nombre es\s+(.+)/i) ||
+      content.match(/me llamo\s+(.+)/i) ||
+      content.match(/my name is\s+(.+)/i);
+    if (nameMatch) {
+      const value = nameMatch[1]?.trim().replace(/[.。！!]+$/, '');
+      if (value) {
+        return {
+          key: 'user_name',
+          value,
+          profileUpdate: { name: value },
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private searchStructuredMemory(memory: UserMemory, query: string): MemoryEntry | null {
+    const normalizedQuery = query.toLowerCase();
+    const asksProjectName =
+      (normalizedQuery.includes('proyecto') && normalizedQuery.includes('nombre')) ||
+      normalizedQuery.includes('project name') ||
+      normalizedQuery.includes('nombre del proyecto');
+    if (asksProjectName) {
+      const projectName = memory.profile.preferences?.project_name as string | undefined;
+      if (projectName) {
+        return {
+          id: 'mem_project_name',
+          timestamp: Date.now(),
+          category: 'fact',
+          content: `El proyecto se llama ${projectName}`,
+          relevance: 1,
+          key: 'project_name',
+          value: projectName,
+          normalized: this.normalizeContent(projectName),
+        };
+      }
+    }
+
+    const asksUserName =
+      normalizedQuery.includes('mi nombre') ||
+      normalizedQuery.includes('me llamo') ||
+      normalizedQuery.includes('my name');
+    if (asksUserName && memory.profile.name) {
+      return {
+        id: 'mem_user_name',
+        timestamp: Date.now(),
+        category: 'fact',
+        content: `Tu nombre es ${memory.profile.name}`,
+        relevance: 1,
+        key: 'user_name',
+        value: memory.profile.name,
+        normalized: this.normalizeContent(memory.profile.name),
+      };
+    }
+
+    return null;
   }
 }
