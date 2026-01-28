@@ -173,12 +173,10 @@ prompt_llm_provider() {
             OPENROUTER_MODELS_RAW=$(OPENROUTER_API_KEY="$OPENROUTER_KEY" python3 - <<'PY'
 import json, os, sys, urllib.request
 key = os.environ.get("OPENROUTER_API_KEY")
-if not key:
-    sys.exit(0)
-req = urllib.request.Request(
-    "https://openrouter.ai/api/v1/models",
-    headers={"Authorization": f"Bearer {key}"}
-)
+headers = {}
+if key:
+    headers["Authorization"] = f"Bearer {key}"
+req = urllib.request.Request("https://openrouter.ai/api/v1/models", headers=headers)
 try:
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.load(resp)
