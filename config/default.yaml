@@ -81,9 +81,9 @@ tools:
     ssh_timeout_ms: 10000
 
   browser:
-    enabled: false
+    enabled: true
     allowed_domains:
-      - "example.com"
+      - "*"
     max_timeout_ms: 30000
     screenshot_dir: "./data/screenshots"
 
