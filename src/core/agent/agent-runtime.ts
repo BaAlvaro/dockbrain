@@ -198,7 +198,8 @@ CRITICAL RULES:
 2. Each step must specify: id, tool, action, params, requires_confirmation, verification
 3. Set requires_confirmation to true for destructive actions (delete, modify files)
 4. Choose appropriate verification type: file_exists, reminder_created, data_retrieved, or none
-5. Return ONLY valid JSON, no additional text
+5. If no tool is needed (greetings, small talk, acknowledgements), return an EMPTY plan
+6. Return ONLY valid JSON, no additional text
 
 Response format:
 {
@@ -221,6 +222,9 @@ Response format:
 
   private buildUserPrompt(userMessage: string): string {
     return `User request: "${userMessage}"
+
+If this does not require any tool (e.g., greeting or small talk), return:
+{ "steps": [], "estimated_tools": [] }
 
 Generate the execution plan in JSON format.`;
   }
