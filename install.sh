@@ -113,7 +113,8 @@ prompt_llm_provider() {
     echo "  4) Codex login (ChatGPT account for Codex CLI)"
     echo "  5) Google Gemini API"
     echo "  6) OpenRouter (free models)"
-    read -p "Choose [1-6] (default: 1): " -n 1 -r
+    echo "  7) DeepSeek API"
+    read -p "Choose [1-7] (default: 1): " -n 1 -r
     echo ""
     CHOICE=${REPLY:-1}
 
@@ -257,6 +258,30 @@ PY
                 set_env_var "OPENROUTER_REFERER" "$OR_REFERER"
             fi
             set_env_var "OPENROUTER_TITLE" "DockBrain"
+            ;;
+        7)
+            set_env_var "LLM_PROVIDER" "deepseek"
+            read -p "Enter DEEPSEEK_API_KEY: " DEEPSEEK_KEY
+            echo ""
+            if [ -n "$DEEPSEEK_KEY" ]; then
+                set_env_var "DEEPSEEK_API_KEY" "$DEEPSEEK_KEY"
+            else
+                echo -e "${YELLOW}DEEPSEEK_API_KEY not set. You can add it later in .env.${NC}"
+            fi
+            read -p "Enter DEEPSEEK_MODEL (default: deepseek-chat): " DEEPSEEK_MODEL
+            echo ""
+            if [ -n "$DEEPSEEK_MODEL" ]; then
+                set_env_var "DEEPSEEK_MODEL" "$DEEPSEEK_MODEL"
+            else
+                set_env_var "DEEPSEEK_MODEL" "deepseek-chat"
+            fi
+            read -p "Enter DEEPSEEK_BASE_URL (default: https://api.deepseek.com/v1): " DEEPSEEK_BASE_URL
+            echo ""
+            if [ -n "$DEEPSEEK_BASE_URL" ]; then
+                set_env_var "DEEPSEEK_BASE_URL" "$DEEPSEEK_BASE_URL"
+            else
+                set_env_var "DEEPSEEK_BASE_URL" "https://api.deepseek.com/v1"
+            fi
             ;;
         *)
             set_env_var "LLM_PROVIDER" "openai"

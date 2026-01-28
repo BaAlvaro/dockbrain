@@ -61,6 +61,9 @@ docker-compose up -d
 - **Choose one LLM provider:**
   - **Ollama** (recommended): Free, local, private
   - **OpenAI**: Paid API - requires API key
+  - **Google Gemini**: API key required
+  - **OpenRouter**: API key + model selection
+  - **DeepSeek**: API key required
   - **Mock**: For testing only
 
 #### Installation Steps
@@ -93,6 +96,12 @@ OLLAMA_MODEL=llama3.2
 # OR for OpenAI (paid):
 # LLM_PROVIDER=openai
 # OPENAI_API_KEY=your_openai_api_key
+
+# OR for DeepSeek:
+# LLM_PROVIDER=deepseek
+# DEEPSEEK_API_KEY=your_deepseek_api_key
+# DEEPSEEK_MODEL=deepseek-chat
+# DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 ```
 
 Generate a secure admin token:
@@ -228,8 +237,11 @@ See `.env.example` for all available options.
 Key variables:
 - `TELEGRAM_BOT_TOKEN` - Your Telegram bot token
 - `ADMIN_API_TOKEN` - Secure token for HTTP API access
-- `LLM_PROVIDER` - `openai` or `mock`
+- `LLM_PROVIDER` - `openai`, `ollama`, `gemini`, `openrouter`, `deepseek`, or `mock`
 - `OPENAI_API_KEY` - Your OpenAI API key
+- `GEMINI_API_KEY` - Your Gemini API key
+- `OPENROUTER_API_KEY` - Your OpenRouter API key
+- `DEEPSEEK_API_KEY` - Your DeepSeek API key
 - `SAFE_ROOT_DIR` - Directory for file operations (default: `./data/safe_root`)
 
 ### config/default.yaml

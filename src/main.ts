@@ -22,6 +22,7 @@ import { OpenAIProvider } from './core/agent/providers/openai-provider.js';
 import { OllamaProvider } from './core/agent/providers/ollama-provider.js';
 import { GeminiProvider } from './core/agent/providers/gemini-provider.js';
 import { OpenRouterProvider } from './core/agent/providers/openrouter-provider.js';
+import { DeepSeekProvider } from './core/agent/providers/deepseek-provider.js';
 import { TaskEngine } from './core/orchestrator/task-engine.js';
 import { RateLimiter } from './core/gateway/rate-limiter.js';
 import { Gateway } from './core/gateway/gateway.js';
@@ -252,6 +253,14 @@ function createLLMProvider(config: any, logger: any) {
     const title = getEnvVarOptional('OPENROUTER_TITLE') || 'DockBrain';
     logger.info({ modelCount: models.length }, 'Using OpenRouter LLM provider');
     return new OpenRouterProvider(logger, apiKey, models, referer, title);
+  }
+
+  if (provider === 'deepseek') {
+    const apiKey = getEnvVar('DEEPSEEK_API_KEY');
+    const model = getEnvVarOptional('DEEPSEEK_MODEL') || config.llm.model || 'deepseek-chat';
+    const baseUrl = getEnvVarOptional('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com/v1';
+    logger.info({ model }, 'Using DeepSeek LLM provider');
+    return new DeepSeekProvider(logger, apiKey, model, baseUrl);
   }
 
   throw new Error(`Unknown LLM provider: ${provider}`);
