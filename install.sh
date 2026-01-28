@@ -169,8 +169,8 @@ prompt_llm_provider() {
                 echo -e "${YELLOW}OPENROUTER_API_KEY not set. You can add it later in .env.${NC}"
             fi
 
-            echo -e "${BLUE}Fetching free models from OpenRouter...${NC}"
-            FREE_MODELS=$(OPENROUTER_API_KEY="$OPENROUTER_KEY" python3 - <<'PY'
+            echo -e "${BLUE}Fetching models from OpenRouter...${NC}"
+            OPENROUTER_MODELS_RAW=$(OPENROUTER_API_KEY="$OPENROUTER_KEY" python3 - <<'PY'
 import json, os, sys, urllib.request
 key = os.environ.get("OPENROUTER_API_KEY")
 if not key:
@@ -185,21 +185,26 @@ try:
 except Exception:
     sys.exit(0)
 items = data.get("data", data)
-ids = []
-for item in items if isinstance(items, list) else []:
+if not isinstance(items, list):
+    sys.exit(0)
+for item in items:
     model_id = item.get("id") or item.get("model")
-    if model_id and ":free" in model_id:
-        ids.append(model_id)
-for mid in ids:
-    print(mid)
+    if model_id:
+        print(model_id)
 PY
 )
+            FREE_MODELS=$(printf "%s\n" "$OPENROUTER_MODELS_RAW" | grep ":free" || true)
+            LIST_MODELS="${FREE_MODELS:-$OPENROUTER_MODELS_RAW}"
 
-            if [ -n "$FREE_MODELS" ]; then
-                echo -e "${GREEN}Free models:${NC}"
-                IFS=$'\n' read -r -d '' -a FREE_LIST <<< "$FREE_MODELS"$'\0'
-                for i in "${!FREE_LIST[@]}"; do
-                    printf "  %d) %s\n" $((i+1)) "${FREE_LIST[$i]}"
+            if [ -n "$LIST_MODELS" ]; then
+                if [ -n "$FREE_MODELS" ]; then
+                    echo -e "${GREEN}Free models:${NC}"
+                else
+                    echo -e "${YELLOW}No free models detected. Showing all available models:${NC}"
+                fi
+                IFS=$'\n' read -r -d '' -a MODEL_LIST <<< "$LIST_MODELS"$'\0'
+                for i in "${!MODEL_LIST[@]}"; do
+                    printf "  %d) %s\n" $((i+1)) "${MODEL_LIST[$i]}"
                 done
                 read -p "Choose models (e.g. 1,3) or press Enter to skip: " MODEL_SELECTION
                 echo ""
@@ -208,8 +213,8 @@ PY
                     SELECTED=()
                     for raw in "${IDX[@]}"; do
                         idx=$(echo "$raw" | tr -d ' ')
-                        if [[ "$idx" =~ ^[0-9]+$ ]] && [ "$idx" -gt 0 ] && [ "$idx" -le "${#FREE_LIST[@]}" ]; then
-                            SELECTED+=("${FREE_LIST[$((idx-1))]}")
+                        if [[ "$idx" =~ ^[0-9]+$ ]] && [ "$idx" -gt 0 ] && [ "$idx" -le "${#MODEL_LIST[@]}" ]; then
+                            SELECTED+=("${MODEL_LIST[$((idx-1))]}")
                         fi
                     done
                     if [ "${#SELECTED[@]}" -gt 0 ]; then
