@@ -80,6 +80,13 @@ tools:
     allowed_ssh_hosts: [] # Empty = block all SSH targets by default
     ssh_timeout_ms: 10000
 
+  browser:
+    enabled: false
+    allowed_domains:
+      - "example.com"
+    max_timeout_ms: 30000
+    screenshot_dir: "./data/screenshots"
+
   codex_auth:
     enabled: false
     cli_path: "codex"

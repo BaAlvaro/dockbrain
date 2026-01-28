@@ -13,6 +13,7 @@ import { GmailTool } from './gmail/tool.js';
 import { NetworkToolsTool } from './network-tools/tool.js';
 import { CodexAuthTool } from './codex-auth/tool.js';
 import { SystemExecTool } from './system-exec/tool.js';
+import { BrowserTool } from './browser/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -74,6 +75,17 @@ export class ToolRegistry {
           logger,
           config.tools.network_tools.allowed_ssh_hosts,
           config.tools.network_tools.ssh_timeout_ms
+        )
+      );
+    }
+
+    if (config.tools.browser.enabled) {
+      this.register(
+        new BrowserTool(
+          logger,
+          config.tools.browser.allowed_domains,
+          config.tools.browser.max_timeout_ms,
+          config.tools.browser.screenshot_dir
         )
       );
     }

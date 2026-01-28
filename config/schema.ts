@@ -82,6 +82,12 @@ export const ConfigSchema = z.object({
       allowed_ssh_hosts: z.array(z.string()).default([]),
       ssh_timeout_ms: z.number().int().min(1000).max(60000).default(10000),
     }),
+    browser: z.object({
+      enabled: z.boolean(),
+      allowed_domains: z.array(z.string()),
+      max_timeout_ms: z.number().int().min(1000).max(120000),
+      screenshot_dir: z.string(),
+    }),
     codex_auth: z.object({
       enabled: z.boolean(),
       cli_path: z.string().optional(),
