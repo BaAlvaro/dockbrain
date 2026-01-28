@@ -34,9 +34,10 @@ export class CodexAuthTool extends BaseTool {
   getActions() {
     return {
       login_chatgpt: {
-        description: 'Sign in with ChatGPT (browser or device auth)',
+        description: 'Sign in with ChatGPT (browser/SSO or device auth)',
         parameters: z.object({
-          device_auth: z.boolean().default(true),
+          mode: z.enum(['browser', 'device']).default('browser'),
+          device_auth: z.boolean().optional(),
         }),
       },
       login_api_key: {
@@ -63,7 +64,7 @@ export class CodexAuthTool extends BaseTool {
   ): Promise<ToolExecutionResult> {
     switch (action) {
       case 'login_chatgpt':
-        return this.loginChatGPT(params.device_auth);
+        return this.loginChatGPT(params.mode, params.device_auth);
       case 'login_api_key':
         return this.loginApiKey(params.api_key_env);
       case 'status':
@@ -75,9 +76,13 @@ export class CodexAuthTool extends BaseTool {
     }
   }
 
-  private async loginChatGPT(deviceAuth: boolean): Promise<ToolExecutionResult> {
+  private async loginChatGPT(
+    mode: 'browser' | 'device',
+    deviceAuth?: boolean
+  ): Promise<ToolExecutionResult> {
+    const resolvedMode = deviceAuth ? 'device' : mode;
     const args = ['login'];
-    if (deviceAuth) {
+    if (resolvedMode === 'device') {
       args.push('--device-auth');
     }
 
