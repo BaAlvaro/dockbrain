@@ -11,6 +11,7 @@ import { SystemInfoTool } from './system-info/tool.js';
 import { EmailTool } from './email/tool.js';
 import { GmailTool } from './gmail/tool.js';
 import { NetworkToolsTool } from './network-tools/tool.js';
+import { CodexAuthTool } from './codex-auth/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -72,6 +73,19 @@ export class ToolRegistry {
           logger,
           config.tools.network_tools.allowed_ssh_hosts,
           config.tools.network_tools.ssh_timeout_ms
+        )
+      );
+    }
+
+    if (config.tools.codex_auth.enabled) {
+      const cliPath = config.tools.codex_auth.cli_path || process.env.CODEX_CLI_PATH || 'codex';
+      const codexHome = config.tools.codex_auth.codex_home || process.env.CODEX_HOME;
+      this.register(
+        new CodexAuthTool(
+          logger,
+          cliPath,
+          codexHome,
+          config.tools.codex_auth.login_timeout_ms
         )
       );
     }

@@ -79,3 +79,9 @@ tools:
     enabled: true
     allowed_ssh_hosts: [] # Empty = block all SSH targets by default
     ssh_timeout_ms: 10000
+
+  codex_auth:
+    enabled: false
+    cli_path: "codex"
+    codex_home: ""
+    login_timeout_ms: 60000
