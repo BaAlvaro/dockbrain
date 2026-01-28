@@ -283,6 +283,33 @@ install_build_tools() {
     esac
 }
 
+# Install system dependencies for Puppeteer/Chrome
+install_puppeteer_deps() {
+    echo -e "${BLUE}Installing Puppeteer/Chrome dependencies...${NC}"
+    case $OS in
+        ubuntu|debian)
+            apt-get update
+            apt-get install -y \
+                libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libgbm1 libgtk-3-0t64 \
+                libnss3 libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+                libxshmfence1 libasound2t64 libxss1 libxtst6 libpangocairo-1.0-0 \
+                libpango-1.0-0 libatspi2.0-0t64 libdbus-1-3 fonts-liberation || true
+            ;;
+        centos|rhel|rocky|almalinux)
+            yum install -y \
+                atk at-spi2-atk cups-libs libdrm libgbm gtk3 nss libX11-xcb libXcomposite \
+                libXdamage libXfixes libXrandr libxshmfence alsa-lib libXScrnSaver libXtst \
+                pango libdbus-1 fontconfig freetype || true
+            ;;
+        arch|manjaro)
+            pacman -Sy --noconfirm \
+                atk at-spi2-atk cups libdrm libgbm gtk3 nss libx11 libxcomposite libxdamage \
+                libxfixes libxrandr libxshmfence alsa-lib libxss libxtst pango libdbus \
+                fontconfig freetype || true
+            ;;
+    esac
+}
+
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
     echo -e "${YELLOW}Node.js not found.${NC}"
@@ -391,6 +418,16 @@ echo ""
 echo -e "${BLUE}Installing Node.js dependencies...${NC}"
 npm install
 
+# Install Puppeteer dependencies + Chrome if puppeteer is present
+if node -e "process.exit(require('./package.json').dependencies?.puppeteer ? 0 : 1)" >/dev/null 2>&1; then
+    install_puppeteer_deps
+    export PUPPETEER_CACHE_DIR="$INSTALL_DIR/data/puppeteer-cache"
+    export XDG_CONFIG_HOME="$INSTALL_DIR/data/xdg"
+    mkdir -p "$PUPPETEER_CACHE_DIR" "$XDG_CONFIG_HOME/puppeteer"
+    echo -e "${BLUE}Installing bundled Chrome for Puppeteer...${NC}"
+    npx puppeteer browsers install chrome || true
+fi
+
 # Build TypeScript
 echo ""
 echo -e "${BLUE}Building TypeScript...${NC}"
@@ -414,6 +451,10 @@ if [ ! -f .env ]; then
     # Update .env with generated token
     sed -i "s/your_admin_api_token_here/$ADMIN_TOKEN/" .env
 
+    # Ensure Puppeteer cache paths are set for systemd
+    set_env_var "PUPPETEER_CACHE_DIR" "$INSTALL_DIR/data/puppeteer-cache"
+    set_env_var "XDG_CONFIG_HOME" "$INSTALL_DIR/data/xdg"
+
     prompt_llm_provider
 
     echo -e "${GREEN}.env file created with admin token.${NC}"
@@ -433,6 +474,9 @@ else
     else
         echo -e "${YELLOW}Skipping LLM provider configuration.${NC}"
     fi
+    # Ensure Puppeteer cache paths are set for systemd even on existing env
+    set_env_var "PUPPETEER_CACHE_DIR" "$INSTALL_DIR/data/puppeteer-cache"
+    set_env_var "XDG_CONFIG_HOME" "$INSTALL_DIR/data/xdg"
 fi
 
 # Create systemd service if running as root
