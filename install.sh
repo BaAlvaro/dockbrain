@@ -191,6 +191,25 @@ for item in items:
         print(model_id)
 PY
 )
+            if [ -z "$OPENROUTER_MODELS_RAW" ]; then
+                OPENROUTER_MODELS_RAW=$(python3 - <<'PY'
+import json, urllib.request, sys
+try:
+    req = urllib.request.Request("https://openrouter.ai/api/v1/models")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        data = json.load(resp)
+except Exception:
+    sys.exit(0)
+items = data.get("data", data)
+if not isinstance(items, list):
+    sys.exit(0)
+for item in items:
+    model_id = item.get("id") or item.get("model")
+    if model_id:
+        print(model_id)
+PY
+)
+            fi
             FREE_MODELS=$(printf "%s\n" "$OPENROUTER_MODELS_RAW" | grep ":free" || true)
             LIST_MODELS="${FREE_MODELS:-$OPENROUTER_MODELS_RAW}"
 
