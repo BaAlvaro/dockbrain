@@ -77,7 +77,9 @@ export class TaskEngine {
     }
 
     try {
-      const quickPlan = this.tryBuildMemoryPlan(task.user_id, task.input_message, availableTools);
+      const quickPlan =
+        this.tryBuildMemoryPlan(task.user_id, task.input_message, availableTools) ||
+        this.tryBuildSystemExecPlan(task.user_id, task.input_message, availableTools);
       if (quickPlan) {
         if (!this.validatePlanPermissions(task.user_id, quickPlan)) {
           return this.failTask(task, 'Plan contains unauthorized tool usage');
@@ -140,6 +142,64 @@ export class TaskEngine {
         },
       ],
       estimated_tools: ['memory'],
+    };
+  }
+
+  private tryBuildSystemExecPlan(userId: number, message: string, availableTools: string[]): any | null {
+    if (!availableTools.includes('system_exec')) return null;
+    if (!this.permissionManager.hasPermission(userId, 'system_exec', 'run_command')) return null;
+
+    const trimmed = message.trim();
+    const lower = trimmed.toLowerCase();
+
+    const directMatch = trimmed.match(
+      /^(ls|pwd|date|uptime|whoami|hostname|df|free|ip|ifconfig)(\s+.*)?$/i
+    );
+    let command: string | null = null;
+    let args: string[] = [];
+
+    if (directMatch) {
+      command = directMatch[1].toLowerCase();
+      const rest = (directMatch[2] || '').trim();
+      if (rest) {
+        args = rest.split(/\s+/).filter(Boolean);
+      }
+    } else if (/\bls\b/.test(lower) || /listar/.test(lower) || /archivos|carpetas|directorio/.test(lower)) {
+      command = 'ls';
+    } else if (lower.includes('pwd') || lower.includes('ruta actual')) {
+      command = 'pwd';
+    } else if (lower.includes('hora') || lower.includes('fecha') || lower.includes('date')) {
+      command = 'date';
+    } else if (lower.includes('uptime')) {
+      command = 'uptime';
+    } else if (lower.includes('quien soy') || lower.includes('whoami')) {
+      command = 'whoami';
+    } else if (lower.includes('hostname')) {
+      command = 'hostname';
+    }
+
+    if (!command) return null;
+
+    const pathMatch = trimmed.match(/(\/[^\s]+)/);
+    if (pathMatch && args.length === 0) {
+      args = [pathMatch[1]];
+    }
+
+    return {
+      steps: [
+        {
+          id: 'step_1',
+          tool: 'system_exec',
+          action: 'run_command',
+          params: {
+            command,
+            args,
+          },
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        },
+      ],
+      estimated_tools: ['system_exec'],
     };
   }
 

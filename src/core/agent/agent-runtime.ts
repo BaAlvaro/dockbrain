@@ -176,6 +176,21 @@ Generate a natural language response for the user.`;
       }
     }
 
+    if (tool === 'system_exec') {
+      const stdout = result.stdout?.trim() || '';
+      const stderr = result.stderr?.trim() || '';
+      if (stdout && stderr) {
+        return `Salida:\n${stdout}\n\nErrores:\n${stderr}`;
+      }
+      if (stdout) {
+        return `Salida:\n${stdout}`;
+      }
+      if (stderr) {
+        return `Errores:\n${stderr}`;
+      }
+      return 'Comando ejecutado.';
+    }
+
     if (result.reminder_id && result.remind_at && result.message) {
       const date = new Date(result.remind_at);
       const formatted = this.formatLocalDateTime(date);
