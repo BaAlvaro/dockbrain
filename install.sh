@@ -536,6 +536,32 @@ EOF
     echo "  Status:  sudo systemctl status dockbrain"
     echo "  Enable:  sudo systemctl enable dockbrain (start on boot)"
     echo "  Logs:    sudo journalctl -u dockbrain -f"
+
+    # Auto-generate admin pairing token
+    if [ -f "$INSTALL_DIR/.env" ]; then
+        ADMIN_API_TOKEN=$(grep -E '^ADMIN_API_TOKEN=' "$INSTALL_DIR/.env" | cut -d '=' -f2-)
+        if [ -n "$ADMIN_API_TOKEN" ]; then
+            echo ""
+            echo -e "${BLUE}Creating admin pairing token...${NC}"
+            for i in {1..10}; do
+                TOKEN_JSON=$(curl -s -X POST "http://127.0.0.1:3000/api/v1/pairing/tokens" \
+                  -H "Authorization: Bearer $ADMIN_API_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d '{"ttl_minutes": 60, "is_admin": true}')
+                if echo "$TOKEN_JSON" | grep -q '"token"'; then
+                    echo -e "${GREEN}Admin pairing token:${NC} $(echo "$TOKEN_JSON" | python3 - <<'PY'
+import json, sys
+data = json.load(sys.stdin)
+print(data.get("token",""))
+PY
+)"
+                    echo -e "${YELLOW}Use in Telegram:${NC} /pair <token>"
+                    break
+                fi
+                sleep 1
+            done
+        fi
+    fi
 fi
 
 # Set correct permissions
