@@ -11,7 +11,7 @@ export const ConfigSchema = z.object({
   }),
 
   llm: z.object({
-    provider: z.enum(['openai', 'ollama', 'mock']),
+    provider: z.enum(['openai', 'ollama', 'mock', 'gemini']),
     model: z.string(),
     temperature: z.number().min(0).max(2),
     max_tokens: z.number().int().min(100).max(4000),

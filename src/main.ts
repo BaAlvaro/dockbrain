@@ -18,6 +18,7 @@ import { AgentRuntime } from './core/agent/agent-runtime.js';
 import { MockLLMProvider } from './core/agent/providers/mock-provider.js';
 import { OpenAIProvider } from './core/agent/providers/openai-provider.js';
 import { OllamaProvider } from './core/agent/providers/ollama-provider.js';
+import { GeminiProvider } from './core/agent/providers/gemini-provider.js';
 import { TaskEngine } from './core/orchestrator/task-engine.js';
 import { RateLimiter } from './core/gateway/rate-limiter.js';
 import { Gateway } from './core/gateway/gateway.js';
@@ -196,6 +197,13 @@ function createLLMProvider(config: any, logger: any) {
     const model = getEnvVarOptional('OLLAMA_MODEL') || config.llm.model || 'llama3.2';
     logger.info({ model, baseUrl }, 'Using Ollama LLM provider');
     return new OllamaProvider(logger, baseUrl, model);
+  }
+
+  if (provider === 'gemini') {
+    const apiKey = getEnvVar('GEMINI_API_KEY');
+    const model = getEnvVarOptional('GEMINI_MODEL') || config.llm.model || 'gemini-2.5-flash';
+    logger.info({ model }, 'Using Gemini LLM provider');
+    return new GeminiProvider(logger, apiKey, model);
   }
 
   throw new Error(`Unknown LLM provider: ${provider}`);
