@@ -24,7 +24,7 @@ export class MemoryTool extends BaseTool {
         parameters: z.object({
           content: z.string().min(1),
           category: z.enum(['fact', 'preference', 'context']),
-          relevance: z.number().min(0).max(1).optional().default(0.5),
+          relevance: z.coerce.number().min(0).max(1).optional().default(0.5),
         }),
       },
       search: {
