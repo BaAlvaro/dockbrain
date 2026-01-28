@@ -1,0 +1,207 @@
+# 🤖 PROMPT PARA OTRA IA - COPIAR Y PEGAR
+
+==================================================
+CONTEXTO COMPLETO - DOCKBRAIN
+==================================================
+
+## REPOSITORIO
+GitHub: https://github.com/BaAlvaro/dockbrain
+Branch: main
+Último commit: 6f48d26
+
+## TU MISIÓN
+
+Implementar Sprint 1 (2 semanas) para alcanzar feature parity con MoltBot.
+
+## QUÉ ES DOCKBRAIN
+
+DockBrain es un asistente de IA local-first para Telegram con enfoque en seguridad.
+Tech: TypeScript + Node.js + SQLite + Telegram + Ollama/OpenAI
+
+**Estado actual:** MVP con 9 tools básicos (~30% del nivel de MoltBot)
+**Objetivo:** Superar a MoltBot (30K+ stars) en features
+
+## LO QUE HAY QUE HACER
+
+### Sprint 1 - 5 Features Críticos (2 semanas):
+
+1. **Browser Automation** (Días 1-5) ⚡
+   - Playwright/CDP integration
+   - 8 acciones: navigate, read, screenshot, pdf, click, type, wait, execute
+   - Código COMPLETO en IMPLEMENTATION_SPRINT1.md líneas 109-313
+
+2. **File Write/Edit** (Días 3-5) ⚡
+   - Crear src/tools/files-write/tool.ts
+   - 4 acciones: write, append, edit, delete
+   - Código COMPLETO en IMPLEMENTATION_SPRINT1.md líneas 315-430
+
+3. **Shell Execution** (Días 6-7) ⚡
+   - Mejorar src/tools/system-exec/tool.ts
+   - Allowlist + security
+   - Código COMPLETO en IMPLEMENTATION_SPRINT1.md líneas 432-538
+
+4. **Memory System** (Días 8-10)
+   - Crear src/core/memory/user-memory.ts
+   - USER.md + memory search
+   - Código COMPLETO en IMPLEMENTATION_SPRINT1.md líneas 540-723
+
+5. **Multi-Agent** (Días 11-14)
+   - Crear src/core/orchestrator/session-manager.ts
+   - Session spawning + messaging
+   - Código COMPLETO en IMPLEMENTATION_SPRINT1.md líneas 725-867
+
+## DOCUMENTACIÓN CRÍTICA
+
+**LEE ESTOS ARCHIVOS EN ORDEN:**
+
+1. **CONTEXT_FOR_AI.md** (882 líneas)
+   - TODO el contexto que necesitas
+   - Comandos exactos
+   - Estructura del proyecto
+   - FAQs
+
+2. **IMPLEMENTATION_SPRINT1.md** (867 líneas)
+   - Plan técnico detallado
+   - CÓDIGO COMPLETO para los 5 features
+   - Tests + documentación
+   - Checklist día por día
+
+3. **STRATEGY_MOLTBOT_KILLER.md** (21KB)
+   - Estrategia completa
+   - 10 ventajas competitivas
+   - Roadmap 3 meses
+
+4. **COMPARISON_MOLTBOT.md** (13KB)
+   - Análisis técnico vs MoltBot
+   - Gap analysis detallado
+
+## COMANDOS PARA EMPEZAR
+
+```bash
+# 1. Clone
+git clone https://github.com/BaAlvaro/dockbrain.git
+cd dockbrain
+
+# 2. Setup
+npm install
+npm install playwright @types/playwright
+npx playwright install chromium
+
+# 3. Crear rama
+git checkout -b feat/browser-automation
+
+# 4. Lee IMPLEMENTATION_SPRINT1.md
+
+# 5. Copia código del Browser Tool (líneas 109-313)
+mkdir -p src/tools/browser
+# ... copiar código ...
+
+# 6. Build + test
+npm run build
+npm test
+
+# 7. Commit
+git add .
+git commit -m "feat: add browser automation tool
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+
+# 8. Push
+git push origin feat/browser-automation
+```
+
+## ESTRUCTURA DEL CÓDIGO
+
+```
+src/
+├── core/
+│   ├── agent/           # LLM providers (5)
+│   ├── gateway/         # API server
+│   ├── orchestrator/    # Task engine
+│   └── security/        # Auth + permissions
+├── connectors/telegram/ # Telegram bot
+├── persistence/         # SQLite + repos
+├── tools/              # 9 tools (agregar 5 más)
+│   ├── browser/        # ← NUEVO (implementar primero)
+│   ├── files-write/    # ← NUEVO
+│   ├── memory/         # ← NUEVO
+│   └── sessions/       # ← NUEVO
+└── main.ts
+```
+
+## PRIORIDADES
+
+1. **Seguridad primero** - Input validation, allowlists, confirmations
+2. **Tests obligatorios** - 80%+ coverage
+3. **Documentación siempre** - README + JSDoc
+4. **Commits semánticos** - feat/fix/docs/test
+
+## MÉTRICAS DE ÉXITO
+
+Sprint 1 (2 semanas):
+- [ ] 5 features implementados
+- [ ] Tests passing 90%+
+- [ ] Release v0.3.0
+- [ ] 100+ nuevas estrellas GitHub
+
+## SIGUIENTE PASO INMEDIATO
+
+**AHORA:** Implementar Browser Tool
+
+1. Lee IMPLEMENTATION_SPRINT1.md líneas 109-313
+2. Copia el código de BrowserManager + BrowserTool
+3. Registra en src/tools/registry.ts
+4. Escribe tests en tests/tools/browser.test.ts
+5. npm run build && npm test
+6. Commit + push
+
+## DOCUMENTOS DISPONIBLES
+
+Todos en: https://github.com/BaAlvaro/dockbrain
+
+```
+CONTEXT_FOR_AI.md          ← EMPIEZA AQUÍ (guía completa)
+IMPLEMENTATION_SPRINT1.md  ← Código completo Sprint 1
+STRATEGY_MOLTBOT_KILLER.md ← Estrategia 3 meses
+COMPARISON_MOLTBOT.md      ← Análisis vs MoltBot
+RESUMEN_MEJORAS.md         ← Roadmap español
+GITHUB_ISSUES.md           ← 14 issues listos
+PITCH.md                   ← Marketing materials
+EXECUTIVE_SUMMARY.md       ← Resumen ejecutivo
+README.md                  ← Project overview
+SECURITY.md                ← Security model
+SETUP_LINUX.md             ← Linux setup
+SETUP_WINDOWS.md           ← Windows setup
+```
+
+## NOTAS IMPORTANTES
+
+- **TODO el código está listo** en IMPLEMENTATION_SPRINT1.md
+- **Solo copiar, pegar, adaptar, testear**
+- No diseñar desde cero
+- El 80% del trabajo ya está hecho
+- TypeScript strict mode
+- Logging estructurado (Pino)
+- Error handling siempre
+- Config en config/default.yaml
+
+## HELP
+
+Si tienes dudas:
+1. Lee CONTEXT_FOR_AI.md completo
+2. Revisa el código existente en src/
+3. Busca en IMPLEMENTATION_SPRINT1.md
+4. Crea issue en GitHub
+
+==================================================
+TODO LISTO. SOLO EJECUTAR. GO! 🚀
+==================================================
+
+## TL;DR
+
+1. Clone: https://github.com/BaAlvaro/dockbrain
+2. Lee: CONTEXT_FOR_AI.md
+3. Implementa: Browser Tool (código en IMPLEMENTATION_SPRINT1.md líneas 109-313)
+4. Ship: v0.3.0 en 2 semanas
+
+**El código está completo. Solo falta ejecutar.**
