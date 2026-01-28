@@ -210,7 +210,7 @@ for item in items:
 PY
 )
             fi
-            FREE_MODELS=$(printf "%s\n" "$OPENROUTER_MODELS_RAW" | grep ":free" || true)
+            FREE_MODELS=$(printf "%s\n" "$OPENROUTER_MODELS_RAW" | tr -d '\r' | grep ":free" || true)
             LIST_MODELS="${FREE_MODELS:-$OPENROUTER_MODELS_RAW}"
 
             if [ -n "$LIST_MODELS" ]; then
@@ -219,7 +219,7 @@ PY
                 else
                     echo -e "${YELLOW}No free models detected. Showing all available models:${NC}"
                 fi
-                IFS=$'\n' read -r -d '' -a MODEL_LIST <<< "$LIST_MODELS"$'\0'
+                mapfile -t MODEL_LIST <<< "$LIST_MODELS"
                 for i in "${!MODEL_LIST[@]}"; do
                     printf "  %d) %s\n" $((i+1)) "${MODEL_LIST[$i]}"
                 done
