@@ -88,6 +88,17 @@ export const ConfigSchema = z.object({
       codex_home: z.string().optional(),
       login_timeout_ms: z.number().int().min(1000).max(120000).default(60000),
     }),
+    system_exec: z.object({
+      enabled: z.boolean(),
+      allowed_commands: z.array(z.string()),
+      blocked_commands: z.array(z.string()).default([]),
+      allowed_systemctl_actions: z.array(z.string()),
+      allowed_systemctl_units: z.array(z.string()),
+      allowed_ufw_actions: z.array(z.string()),
+      max_output_bytes: z.number().int().min(1024).max(1024 * 1024).default(20000),
+      default_timeout_ms: z.number().int().min(1000).max(120000).default(15000),
+      allowed_working_dirs: z.array(z.string()).default([]),
+    }),
   }),
 });
 

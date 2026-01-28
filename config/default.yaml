@@ -85,3 +85,39 @@ tools:
     cli_path: "codex"
     codex_home: ""
     login_timeout_ms: 60000
+
+  system_exec:
+    enabled: false
+    allowed_commands:
+      - "date"
+      - "uptime"
+      - "whoami"
+      - "uname"
+      - "hostname"
+      - "df"
+      - "free"
+      - "ip"
+      - "ifconfig"
+    blocked_commands:
+      - "sudo"
+      - "bash"
+      - "sh"
+      - "zsh"
+    allowed_systemctl_actions:
+      - "status"
+      - "start"
+      - "stop"
+      - "restart"
+    allowed_systemctl_units:
+      - "dockbrain.service"
+    allowed_ufw_actions:
+      - "status"
+      - "enable"
+      - "disable"
+      - "allow"
+      - "deny"
+      - "delete"
+      - "reload"
+    max_output_bytes: 20000
+    default_timeout_ms: 15000
+    allowed_working_dirs: []

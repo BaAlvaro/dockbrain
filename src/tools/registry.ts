@@ -12,6 +12,7 @@ import { EmailTool } from './email/tool.js';
 import { GmailTool } from './gmail/tool.js';
 import { NetworkToolsTool } from './network-tools/tool.js';
 import { CodexAuthTool } from './codex-auth/tool.js';
+import { SystemExecTool } from './system-exec/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -86,6 +87,22 @@ export class ToolRegistry {
           cliPath,
           codexHome,
           config.tools.codex_auth.login_timeout_ms
+        )
+      );
+    }
+
+    if (config.tools.system_exec.enabled) {
+      this.register(
+        new SystemExecTool(
+          logger,
+          config.tools.system_exec.allowed_commands,
+          config.tools.system_exec.blocked_commands,
+          config.tools.system_exec.allowed_systemctl_actions,
+          config.tools.system_exec.allowed_systemctl_units,
+          config.tools.system_exec.allowed_ufw_actions,
+          config.tools.system_exec.max_output_bytes,
+          config.tools.system_exec.default_timeout_ms,
+          config.tools.system_exec.allowed_working_dirs
         )
       );
     }
