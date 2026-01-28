@@ -45,6 +45,7 @@ describe('Permission Manager', () => {
     expect(permissionManager.hasPermission(userId, 'system_info', 'get')).toBe(true);
     expect(permissionManager.hasPermission(userId, 'reminders', 'create')).toBe(true);
     expect(permissionManager.hasPermission(userId, 'reminders', 'list')).toBe(true);
+    expect(permissionManager.hasPermission(userId, 'network_tools', 'get_server_ip')).toBe(true);
   });
 
   it('should deny permission for unauthorized tool', () => {

@@ -59,6 +59,10 @@ export class PermissionManager {
       { tool_name: 'reminders', action: 'create', granted: true, requires_confirmation: false },
       { tool_name: 'reminders', action: 'list', granted: true, requires_confirmation: false },
       { tool_name: 'reminders', action: 'delete', granted: true, requires_confirmation: true },
+      { tool_name: 'network_tools', action: 'get_server_ip', granted: true, requires_confirmation: false },
+      { tool_name: 'network_tools', action: 'get_local_ips', granted: true, requires_confirmation: false },
+      { tool_name: 'network_tools', action: 'get_ssh_info', granted: true, requires_confirmation: false },
+      { tool_name: 'network_tools', action: 'execute_ssh_command', granted: false, requires_confirmation: true },
     ];
 
     for (const perm of defaultPermissions) {

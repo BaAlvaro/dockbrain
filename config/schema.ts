@@ -77,6 +77,11 @@ export const ConfigSchema = z.object({
     gmail: z.object({
       enabled: z.boolean(),
     }),
+    network_tools: z.object({
+      enabled: z.boolean(),
+      allowed_ssh_hosts: z.array(z.string()).default([]),
+      ssh_timeout_ms: z.number().int().min(1000).max(60000).default(10000),
+    }),
   }),
 });
 

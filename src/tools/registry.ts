@@ -10,6 +10,7 @@ import { WebSandboxTool } from './web-sandbox/tool.js';
 import { SystemInfoTool } from './system-info/tool.js';
 import { EmailTool } from './email/tool.js';
 import { GmailTool } from './gmail/tool.js';
+import { NetworkToolsTool } from './network-tools/tool.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -63,6 +64,16 @@ export class ToolRegistry {
 
     if (config.tools.gmail.enabled || configStore?.get('gmail.refresh_token') || process.env.GMAIL_REFRESH_TOKEN) {
       this.register(new GmailTool(logger, configStore));
+    }
+
+    if (config.tools.network_tools.enabled) {
+      this.register(
+        new NetworkToolsTool(
+          logger,
+          config.tools.network_tools.allowed_ssh_hosts,
+          config.tools.network_tools.ssh_timeout_ms
+        )
+      );
     }
 
     this.logger.info(
