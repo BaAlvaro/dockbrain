@@ -112,7 +112,8 @@ prompt_llm_provider() {
     echo "  3) Mock (no LLM)"
     echo "  4) Codex login (ChatGPT account for Codex CLI)"
     echo "  5) Google Gemini API"
-    read -p "Choose [1-5] (default: 1): " -n 1 -r
+    echo "  6) OpenRouter (free models)"
+    read -p "Choose [1-6] (default: 1): " -n 1 -r
     echo ""
     CHOICE=${REPLY:-1}
 
@@ -157,6 +158,83 @@ prompt_llm_provider() {
             else
                 set_env_var "GEMINI_MODEL" "gemini-2.5-flash"
             fi
+            ;;
+        6)
+            set_env_var "LLM_PROVIDER" "openrouter"
+            read -p "Enter OPENROUTER_API_KEY: " OPENROUTER_KEY
+            echo ""
+            if [ -n "$OPENROUTER_KEY" ]; then
+                set_env_var "OPENROUTER_API_KEY" "$OPENROUTER_KEY"
+            else
+                echo -e "${YELLOW}OPENROUTER_API_KEY not set. You can add it later in .env.${NC}"
+            fi
+
+            echo -e "${BLUE}Fetching free models from OpenRouter...${NC}"
+            FREE_MODELS=$(OPENROUTER_API_KEY="$OPENROUTER_KEY" python3 - <<'PY'
+import json, os, sys, urllib.request
+key = os.environ.get("OPENROUTER_API_KEY")
+if not key:
+    sys.exit(0)
+req = urllib.request.Request(
+    "https://openrouter.ai/api/v1/models",
+    headers={"Authorization": f"Bearer {key}"}
+)
+try:
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        data = json.load(resp)
+except Exception:
+    sys.exit(0)
+items = data.get("data", data)
+ids = []
+for item in items if isinstance(items, list) else []:
+    model_id = item.get("id") or item.get("model")
+    if model_id and ":free" in model_id:
+        ids.append(model_id)
+for mid in ids:
+    print(mid)
+PY
+)
+
+            if [ -n "$FREE_MODELS" ]; then
+                echo -e "${GREEN}Free models:${NC}"
+                IFS=$'\n' read -r -d '' -a FREE_LIST <<< "$FREE_MODELS"$'\0'
+                for i in "${!FREE_LIST[@]}"; do
+                    printf "  %d) %s\n" $((i+1)) "${FREE_LIST[$i]}"
+                done
+                read -p "Choose models (e.g. 1,3) or press Enter to skip: " MODEL_SELECTION
+                echo ""
+                if [ -n "$MODEL_SELECTION" ]; then
+                    IFS=',' read -ra IDX <<< "$MODEL_SELECTION"
+                    SELECTED=()
+                    for raw in "${IDX[@]}"; do
+                        idx=$(echo "$raw" | tr -d ' ')
+                        if [[ "$idx" =~ ^[0-9]+$ ]] && [ "$idx" -gt 0 ] && [ "$idx" -le "${#FREE_LIST[@]}" ]; then
+                            SELECTED+=("${FREE_LIST[$((idx-1))]}")
+                        fi
+                    done
+                    if [ "${#SELECTED[@]}" -gt 0 ]; then
+                        set_env_var "OPENROUTER_MODELS" "$(IFS=,; echo "${SELECTED[*]}")"
+                        set_env_var "OPENROUTER_MODEL" "${SELECTED[0]}"
+                    fi
+                fi
+            fi
+
+            if ! grep -q "^OPENROUTER_MODEL=" .env; then
+                read -p "Enter OpenRouter model (example: google/gemini-2.5-flash-preview:free): " OR_MODEL
+                echo ""
+                if [ -n "$OR_MODEL" ]; then
+                    set_env_var "OPENROUTER_MODEL" "$OR_MODEL"
+                else
+                    set_env_var "OPENROUTER_MODEL" "google/gemini-2.5-flash-preview:free"
+                fi
+            fi
+
+            read -p "Set OPENROUTER_REFERER (optional, recommended): " OR_REFERER
+            echo ""
+            if [ -n "$OR_REFERER" ]; then
+                set_env_var "OPENROUTER_REFERER" "$OR_REFERER"
+            fi
+            set_env_var "OPENROUTER_TITLE" "DockBrain"
             ;;
         *)
             set_env_var "LLM_PROVIDER" "openai"

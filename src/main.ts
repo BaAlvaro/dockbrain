@@ -19,6 +19,7 @@ import { MockLLMProvider } from './core/agent/providers/mock-provider.js';
 import { OpenAIProvider } from './core/agent/providers/openai-provider.js';
 import { OllamaProvider } from './core/agent/providers/ollama-provider.js';
 import { GeminiProvider } from './core/agent/providers/gemini-provider.js';
+import { OpenRouterProvider } from './core/agent/providers/openrouter-provider.js';
 import { TaskEngine } from './core/orchestrator/task-engine.js';
 import { RateLimiter } from './core/gateway/rate-limiter.js';
 import { Gateway } from './core/gateway/gateway.js';
@@ -204,6 +205,25 @@ function createLLMProvider(config: any, logger: any) {
     const model = getEnvVarOptional('GEMINI_MODEL') || config.llm.model || 'gemini-2.5-flash';
     logger.info({ model }, 'Using Gemini LLM provider');
     return new GeminiProvider(logger, apiKey, model);
+  }
+
+  if (provider === 'openrouter') {
+    const apiKey = getEnvVar('OPENROUTER_API_KEY');
+    const modelsValue =
+      getEnvVarOptional('OPENROUTER_MODELS') || getEnvVarOptional('OPENROUTER_MODEL') || config.llm.model;
+    const models = modelsValue
+      ? modelsValue
+          .split(',')
+          .map((modelName: string) => modelName.trim())
+          .filter(Boolean)
+      : [];
+    if (models.length === 0) {
+      throw new Error('Missing OpenRouter model. Set OPENROUTER_MODEL or OPENROUTER_MODELS.');
+    }
+    const referer = getEnvVarOptional('OPENROUTER_REFERER');
+    const title = getEnvVarOptional('OPENROUTER_TITLE') || 'DockBrain';
+    logger.info({ modelCount: models.length }, 'Using OpenRouter LLM provider');
+    return new OpenRouterProvider(logger, apiKey, models, referer, title);
   }
 
   throw new Error(`Unknown LLM provider: ${provider}`);
