@@ -78,6 +78,19 @@ install_ollama() {
     fi
 }
 
+# Function to install Codex CLI
+install_codex_cli() {
+    echo -e "${BLUE}Installing Codex CLI...${NC}"
+    npm i -g @openai/codex
+}
+
+# Enable Codex auth tool in default config
+enable_codex_auth_config() {
+    if [ -f "$INSTALL_DIR/config/default.yaml" ]; then
+        perl -0777 -i -pe 's/(codex_auth:\n\s*enabled:\s*)false/\1true/' "$INSTALL_DIR/config/default.yaml" || true
+    fi
+}
+
 # Function to install build tools
 install_build_tools() {
     echo -e "${BLUE}Installing build tools...${NC}"
@@ -228,10 +241,47 @@ if [ ! -f .env ]; then
     # Update .env with generated token
     sed -i "s/your_admin_api_token_here/$ADMIN_TOKEN/" .env
 
-    # Set Ollama as default if installed
-    if command -v ollama &> /dev/null; then
-        sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=ollama/' .env
-    fi
+    # Choose LLM provider
+    echo ""
+    echo -e "${BLUE}Select LLM provider:${NC}"
+    echo "  1) OpenAI API"
+    echo "  2) Ollama (local)"
+    echo "  3) Mock (no LLM)"
+    echo "  4) Codex login (ChatGPT account for Codex CLI)"
+    read -p "Choose [1-4] (default: 1): " -n 1 -r
+    echo ""
+    CHOICE=${REPLY:-1}
+
+    case $CHOICE in
+        2)
+            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=ollama/' .env
+            ;;
+        3)
+            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=mock/' .env
+            ;;
+        4)
+            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=openai/' .env
+            enable_codex_auth_config
+            echo -e "${YELLOW}Codex login will authenticate the Codex CLI. DockBrain still needs an OpenAI API key unless you use Ollama.${NC}"
+            if ! command -v codex &> /dev/null; then
+                read -p "Install Codex CLI now? (y/n) " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    install_codex_cli
+                fi
+            fi
+            if command -v codex &> /dev/null; then
+                echo -e "${BLUE}Starting Codex login (device auth). Follow the link and enter the code.${NC}"
+                codex login --device-auth || true
+            else
+                echo -e "${YELLOW}Codex CLI not installed. You can install later with: npm i -g @openai/codex${NC}"
+            fi
+            ;;
+        *)
+            # Default OpenAI
+            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=openai/' .env
+            ;;
+    esac
 
     echo -e "${GREEN}.env file created with admin token.${NC}"
     echo ""
