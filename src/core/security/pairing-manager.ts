@@ -14,7 +14,8 @@ export class PairingManager {
     private pairingTokenRepo: PairingTokenRepository,
     private userRepo: UserRepository,
     private logger: Logger,
-    private defaultTtlMinutes: number
+    private defaultTtlMinutes: number,
+    private autoGrantFirstUserAdmin: boolean
   ) {}
 
   createPairingToken(ttlMinutes?: number, isAdmin?: boolean): CreateTokenResult {
@@ -42,7 +43,10 @@ export class PairingManager {
     }
 
     const pairingToken = this.pairingTokenRepo.findByToken(request.token);
-    const isAdmin = Boolean(pairingToken?.is_admin);
+    const isAdminToken = Boolean(pairingToken?.is_admin);
+    const shouldAutoGrant =
+      this.autoGrantFirstUserAdmin && this.userRepo.findAll().length === 0;
+    const isAdmin = isAdminToken || shouldAutoGrant;
 
     const existingUser = this.userRepo.findByTelegramChatId(request.telegram_chat_id);
     if (existingUser) {

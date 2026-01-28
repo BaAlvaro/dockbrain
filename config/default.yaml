@@ -5,6 +5,7 @@ security:
   task_timeout_ms: 120000
   pairing_token_ttl_minutes: 60
   rate_limit_per_minute: 10
+  auto_grant_first_user_admin: true
 
   # Allowed domains for web_sandbox tool
   web_allowed_domains:

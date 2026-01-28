@@ -6,6 +6,7 @@ export const ConfigSchema = z.object({
     task_timeout_ms: z.number().int().min(1000).max(600000),
     pairing_token_ttl_minutes: z.number().int().min(1).max(1440),
     rate_limit_per_minute: z.number().int().min(1).max(1000),
+    auto_grant_first_user_admin: z.boolean().default(false),
     web_allowed_domains: z.array(z.string()),
     web_blocked_ip_ranges: z.array(z.string()),
   }),

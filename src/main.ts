@@ -68,9 +68,18 @@ async function main() {
       pairingTokenRepo,
       userRepo,
       logger,
-      config.security.pairing_token_ttl_minutes
+      config.security.pairing_token_ttl_minutes,
+      config.security.auto_grant_first_user_admin
     );
     const auditLogger = new AuditLogger(auditRepo, logger);
+
+    if (config.security.auto_grant_first_user_admin) {
+      const activeUsers = userRepo.findActive();
+      if (activeUsers.length === 1) {
+        permissionManager.grantAdminPermissions(activeUsers[0].id);
+        logger.info({ userId: activeUsers[0].id }, 'Auto-granted admin permissions to first user');
+      }
+    }
 
     const configStore = new ConfigStoreRepository(db);
     const llmProvider = createLLMProvider(config, logger);
