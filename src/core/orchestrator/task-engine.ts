@@ -183,32 +183,53 @@ export class TaskEngine {
       const file = this.extractSimpleName(trimmed, /(archivo|file)/i);
       if (!folder) return null;
 
-      const parts: string[] = [];
-      parts.push(`mkdir -p ${this.shellEscape(folder)}`);
+      const steps: any[] = [];
+      let stepIndex = 1;
+
+      steps.push({
+        id: `step_${stepIndex++}`,
+        tool: 'system_exec',
+        action: 'run_command',
+        params: { command: 'mkdir', args: ['-p', folder] },
+        requires_confirmation: false,
+        verification: { type: 'data_retrieved', params: {} },
+      });
+
       if (file) {
-        parts.push(`touch ${this.shellEscape(`${folder}/${file}`)}`);
+        steps.push({
+          id: `step_${stepIndex++}`,
+          tool: 'system_exec',
+          action: 'run_command',
+          params: { command: 'touch', args: [`${folder}/${file}`] },
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        });
       }
 
       if (/\bls\b/.test(lower) || lower.includes('lista') || lower.includes('listar')) {
-        parts.push('ls');
+        steps.push({
+          id: `step_${stepIndex++}`,
+          tool: 'system_exec',
+          action: 'run_command',
+          params: { command: 'ls', args: [] },
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        });
       }
+
       if (/\bpwd\b/.test(lower) || lower.includes('ruta') || lower.includes('direccion completa')) {
-        parts.push('pwd');
+        steps.push({
+          id: `step_${stepIndex++}`,
+          tool: 'system_exec',
+          action: 'run_command',
+          params: { command: 'pwd', args: [] },
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        });
       }
 
       return {
-        steps: [
-          {
-            id: 'step_1',
-            tool: 'system_exec',
-            action: 'bash',
-            params: {
-              script: parts.join(' && '),
-            },
-            requires_confirmation: false,
-            verification: { type: 'data_retrieved', params: {} },
-          },
-        ],
+        steps,
         estimated_tools: ['system_exec'],
       };
     }
@@ -264,9 +285,6 @@ export class TaskEngine {
     return value;
   }
 
-  private shellEscape(value: string): string {
-    return `'${value.replace(/'/g, `'\"'\"'`)}'`;
-  }
 
   private async executionPhase(task: Task): Promise<Task> {
     this.logger.debug({ taskId: task.id }, 'Execution phase started');
