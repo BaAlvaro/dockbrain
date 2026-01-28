@@ -23,7 +23,7 @@ export class MemoryTool extends BaseTool {
         description: 'Add a memory entry',
         parameters: z.object({
           content: z.string().min(1),
-          category: z.enum(['fact', 'preference', 'context']),
+          category: z.enum(['fact', 'preference', 'context']).optional().default('context'),
           relevance: z.coerce.number().min(0).max(1).optional().default(0.5),
         }),
       },
@@ -43,7 +43,12 @@ export class MemoryTool extends BaseTool {
   ): Promise<ToolExecutionResult> {
     switch (action) {
       case 'add':
-        return this.addMemory(context.user_id, params.content, params.category, params.relevance);
+        return this.addMemory(
+          context.user_id,
+          params.content,
+          params.category ?? 'context',
+          params.relevance
+        );
       case 'search':
         return this.searchMemory(context.user_id, params.query, context.user_message);
       default:
