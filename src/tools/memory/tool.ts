@@ -30,7 +30,7 @@ export class MemoryTool extends BaseTool {
       search: {
         description: 'Search memories by keyword',
         parameters: z.object({
-          query: z.string().min(1),
+          query: z.string().optional().default(''),
         }),
       },
     };
@@ -45,7 +45,7 @@ export class MemoryTool extends BaseTool {
       case 'add':
         return this.addMemory(context.user_id, params.content, params.category, params.relevance);
       case 'search':
-        return this.searchMemory(context.user_id, params.query);
+        return this.searchMemory(context.user_id, params.query, context.user_message);
       default:
         return { success: false, error: 'Unknown action' };
     }
@@ -70,8 +70,16 @@ export class MemoryTool extends BaseTool {
     };
   }
 
-  private async searchMemory(userId: number, query: string): Promise<ToolExecutionResult> {
-    const results = await this.memoryManager.search(userId, query);
+  private async searchMemory(
+    userId: number,
+    query?: string,
+    fallbackQuery?: string
+  ): Promise<ToolExecutionResult> {
+    const effectiveQuery = query && query.trim().length > 0 ? query : fallbackQuery || '';
+    if (!effectiveQuery) {
+      return { success: false, error: 'Query is required' };
+    }
+    const results = await this.memoryManager.search(userId, effectiveQuery);
     return { success: true, data: { results } };
   }
 }
