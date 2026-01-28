@@ -2,7 +2,6 @@ import type { Logger } from '../../utils/logger.js';
 
 export class InputSanitizer {
   private static readonly DANGEROUS_PATTERNS = [
-    /\x00/g, // Null bytes
     /<script\b[^>]*>/gi, // Script tags
     /javascript:/gi, // JavaScript protocol
     /on\w+\s*=/gi, // Event handlers
@@ -17,6 +16,11 @@ export class InputSanitizer {
     }
 
     let sanitized = input;
+
+    if (sanitized.includes('\u0000')) {
+      this.logger.warn({ pattern: 'null_byte' }, 'Dangerous pattern detected in input');
+      sanitized = sanitized.replaceAll('\u0000', '');
+    }
 
     for (const pattern of InputSanitizer.DANGEROUS_PATTERNS) {
       if (pattern.test(sanitized)) {
