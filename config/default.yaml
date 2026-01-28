@@ -108,6 +108,7 @@ tools:
       - "grep"
       - "find"
       - "mkdir"
+      - "touch"
       - "date"
       - "uptime"
       - "whoami"

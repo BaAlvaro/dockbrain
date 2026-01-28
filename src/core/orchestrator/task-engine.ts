@@ -164,6 +164,8 @@ export class TaskEngine {
       if (rest) {
         args = rest.split(/\s+/).filter(Boolean);
       }
+    } else if (/\bwhoami\b/.test(lower) || lower.includes('quien soy') || lower.includes('quién soy')) {
+      command = 'whoami';
     } else if (/\bls\b/.test(lower) || /listar/.test(lower) || /archivos|carpetas|directorio/.test(lower)) {
       command = 'ls';
     } else if (lower.includes('pwd') || lower.includes('ruta actual')) {
@@ -176,6 +178,39 @@ export class TaskEngine {
       command = 'whoami';
     } else if (lower.includes('hostname')) {
       command = 'hostname';
+    } else if (lower.includes('crea') && (lower.includes('carpeta') || lower.includes('folder'))) {
+      const folder = this.extractSafeName(trimmed, /(carpeta|folder)\s+(?:llamada\s+|nombre\s+)?["']?([^"'\n]+)["']?/i, 2);
+      const file = this.extractSafeName(trimmed, /(archivo|file)\s+(?:llamado\s+|nombre\s+)?["']?([^"'\n]+)["']?/i, 2);
+      if (!folder) return null;
+
+      const parts: string[] = [];
+      parts.push(`mkdir -p ${this.shellEscape(folder)}`);
+      if (file) {
+        parts.push(`touch ${this.shellEscape(`${folder}/${file}`)}`);
+      }
+
+      if (/\bls\b/.test(lower) || lower.includes('lista') || lower.includes('listar')) {
+        parts.push('ls');
+      }
+      if (/\bpwd\b/.test(lower) || lower.includes('ruta') || lower.includes('direccion completa')) {
+        parts.push('pwd');
+      }
+
+      return {
+        steps: [
+          {
+            id: 'step_1',
+            tool: 'system_exec',
+            action: 'bash',
+            params: {
+              script: parts.join(' && '),
+            },
+            requires_confirmation: false,
+            verification: { type: 'data_retrieved', params: {} },
+          },
+        ],
+        estimated_tools: ['system_exec'],
+      };
     }
 
     if (!command) return null;
@@ -201,6 +236,23 @@ export class TaskEngine {
       ],
       estimated_tools: ['system_exec'],
     };
+  }
+
+  private extractSafeName(input: string, pattern: RegExp, groupIndex: number): string | null {
+    const match = input.match(pattern);
+    const raw = match?.[groupIndex]?.trim();
+    if (!raw) return null;
+    if (!/^[a-zA-Z0-9 _.-]+$/.test(raw)) {
+      return null;
+    }
+    if (raw.includes('/')) {
+      return null;
+    }
+    return raw;
+  }
+
+  private shellEscape(value: string): string {
+    return `'${value.replace(/'/g, `'\"'\"'`)}'`;
   }
 
   private async executionPhase(task: Task): Promise<Task> {
