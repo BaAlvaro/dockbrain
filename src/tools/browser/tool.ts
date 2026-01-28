@@ -207,6 +207,7 @@ export class BrowserTool extends BaseTool {
         data: {
           url: page.url(),
           screenshot_path: filepath,
+          path: filepath,
           filename,
         },
       };
