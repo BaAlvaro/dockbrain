@@ -26,7 +26,10 @@ export class TaskEngine {
     private auditLogger: AuditLogger,
     private logger: Logger,
     maxRetries: number = 3,
-    private memoryManager?: { recordInteraction: (userId: number, userMessage: string, assistantMessage: string) => Promise<void> }
+    private memoryManager?: {
+      recordInteraction: (userId: number, userMessage: string, assistantMessage: string) => Promise<void>;
+      addMemory?: (userId: number, content: string, category: 'fact' | 'preference' | 'context', relevance?: number) => Promise<any>;
+    }
   ) {
     this.executor = new TaskExecutor(toolRegistry, auditLogger, logger);
     this.verifier = new TaskVerifier(reminderRepo, logger);
@@ -409,6 +412,10 @@ export class TaskEngine {
 
       if (this.memoryManager) {
         await this.memoryManager.recordInteraction(task.user_id, task.input_message, finalResponse);
+        const summary = this.buildExecutionSummary(task.execution_log);
+        if (summary && this.memoryManager.addMemory) {
+          await this.memoryManager.addMemory(task.user_id, summary, 'context', 0.7);
+        }
       }
 
       this.logger.info(
@@ -464,5 +471,34 @@ export class TaskEngine {
       }
     }
     return true;
+  }
+
+  private buildExecutionSummary(executionLog: any): string | null {
+    const steps = Array.isArray(executionLog?.steps) ? executionLog.steps : [];
+    if (steps.length === 0) return null;
+    const summaries: string[] = [];
+
+    for (const step of steps) {
+      if (step.status !== 'success') continue;
+      const tool = step.tool;
+      const action = step.action;
+      const result = step.result || {};
+
+      if (tool === 'system_exec' && result.command) {
+        const args = Array.isArray(result.args) ? result.args.join(' ') : '';
+        summaries.push(`Ejecuté: ${result.command} ${args}`.trim());
+      } else if (tool === 'files_write' && result.path) {
+        summaries.push(`Archivo ${action}: ${result.path}`);
+      } else if (tool === 'browser' && result.url) {
+        summaries.push(`Browser ${action}: ${result.url}`);
+      } else if (tool === 'network_tools') {
+        summaries.push(`Red: ${action}`);
+      } else if (tool === 'reminders' && result.message) {
+        summaries.push(`Recordatorio creado: ${result.message}`);
+      }
+    }
+
+    if (summaries.length === 0) return null;
+    return summaries.slice(0, 5).join(' | ');
   }
 }

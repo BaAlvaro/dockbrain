@@ -160,7 +160,8 @@ Generate a natural language response for the user.`;
       if (top?.key === 'user_name' && top?.value) {
         return `Tu nombre es ${top.value}.`;
       }
-      return `Esto es lo que recuerdo: ${top?.content ?? ''}`.trim();
+      const lines = items.slice(0, 3).map((m: any) => `- ${m.content}`);
+      return `Esto es lo que recuerdo:\n${lines.join('\n')}`;
     }
 
     if (tool === 'files_write' && result.path) {

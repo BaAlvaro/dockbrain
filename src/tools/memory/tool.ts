@@ -81,9 +81,29 @@ export class MemoryTool extends BaseTool {
     fallbackQuery?: string
   ): Promise<ToolExecutionResult> {
     const effectiveQuery = query && query.trim().length > 0 ? query : fallbackQuery || '';
+    const normalized = effectiveQuery.toLowerCase().trim();
+
     if (!effectiveQuery) {
       return { success: false, error: 'Query is required' };
     }
+
+    const wantsRecent =
+      normalized === '*' ||
+      normalized.includes('qué hemos hecho') ||
+      normalized.includes('que hemos hecho') ||
+      normalized.includes('qué hicimos') ||
+      normalized.includes('que hicimos') ||
+      normalized.includes('historial') ||
+      normalized.includes('antes');
+
+    if (wantsRecent) {
+      const memory = await this.memoryManager.getUserMemory(userId);
+      const recent = Array.isArray(memory.memories)
+        ? memory.memories.slice(-5).reverse()
+        : [];
+      return { success: true, data: { results: recent } };
+    }
+
     const results = await this.memoryManager.search(userId, effectiveQuery);
     return { success: true, data: { results } };
   }
