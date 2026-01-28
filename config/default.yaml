@@ -141,7 +141,11 @@ tools:
       - "reload"
     max_output_bytes: 20000
     default_timeout_ms: 15000
-    allowed_working_dirs: []
+    # Allow system_exec to run in the safe workspace by default
+    # (keeps filesystem writes inside DockBrain's safe root)
+    # Using a relative path keeps it portable across install locations.
+    allowed_working_dirs:
+      - "./data/safe_root"
 
   memory:
     enabled: true

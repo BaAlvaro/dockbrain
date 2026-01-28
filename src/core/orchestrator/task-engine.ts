@@ -9,6 +9,7 @@ import type { Logger } from '../../utils/logger.js';
 import { TaskExecutor } from './task-executor.js';
 import { TaskVerifier } from './task-verifier.js';
 import type { ReminderRepository } from '../../persistence/repositories/reminder-repository.js';
+import path from 'path';
 
 export class TaskEngine {
   private executor: TaskExecutor;
@@ -190,7 +191,11 @@ export class TaskEngine {
         id: `step_${stepIndex++}`,
         tool: 'system_exec',
         action: 'run_command',
-        params: { command: 'mkdir', args: [folder] },
+        params: {
+          command: 'mkdir',
+          args: [folder],
+          working_dir: this.getSafeRootDir(),
+        },
         requires_confirmation: false,
         verification: { type: 'data_retrieved', params: {} },
       });
@@ -200,7 +205,11 @@ export class TaskEngine {
           id: `step_${stepIndex++}`,
           tool: 'system_exec',
           action: 'run_command',
-          params: { command: 'touch', args: [`${folder}/${file}`] },
+          params: {
+            command: 'touch',
+            args: [`${folder}/${file}`],
+            working_dir: this.getSafeRootDir(),
+          },
           requires_confirmation: false,
           verification: { type: 'data_retrieved', params: {} },
         });
@@ -211,7 +220,11 @@ export class TaskEngine {
           id: `step_${stepIndex++}`,
           tool: 'system_exec',
           action: 'run_command',
-          params: { command: 'ls', args: [] },
+          params: {
+            command: 'ls',
+            args: [],
+            working_dir: this.getSafeRootDir(),
+          },
           requires_confirmation: false,
           verification: { type: 'data_retrieved', params: {} },
         });
@@ -222,7 +235,11 @@ export class TaskEngine {
           id: `step_${stepIndex++}`,
           tool: 'system_exec',
           action: 'run_command',
-          params: { command: 'pwd', args: [] },
+          params: {
+            command: 'pwd',
+            args: [],
+            working_dir: this.getSafeRootDir(),
+          },
           requires_confirmation: false,
           verification: { type: 'data_retrieved', params: {} },
         });
@@ -241,6 +258,10 @@ export class TaskEngine {
       args = [pathMatch[1]];
     }
 
+    const safeRoot = this.getSafeRootDir();
+    const shouldUseSafeRoot = ['ls', 'pwd', 'mkdir', 'touch'].includes(command);
+    const working_dir = shouldUseSafeRoot && args.length === 0 ? safeRoot : undefined;
+
     return {
       steps: [
         {
@@ -250,6 +271,7 @@ export class TaskEngine {
           params: {
             command,
             args,
+            working_dir,
           },
           requires_confirmation: false,
           verification: { type: 'data_retrieved', params: {} },
@@ -283,6 +305,11 @@ export class TaskEngine {
     }
     if (value.includes('/')) return null;
     return value;
+  }
+
+  private getSafeRootDir(): string {
+    const configured = process.env.SAFE_ROOT_DIR || './data/safe_root';
+    return path.resolve(configured);
   }
 
 
