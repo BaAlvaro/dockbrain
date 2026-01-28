@@ -190,7 +190,7 @@ export class TaskEngine {
         id: `step_${stepIndex++}`,
         tool: 'system_exec',
         action: 'run_command',
-        params: { command: 'mkdir', args: ['-p', folder] },
+        params: { command: 'mkdir', args: [folder] },
         requires_confirmation: false,
         verification: { type: 'data_retrieved', params: {} },
       });
