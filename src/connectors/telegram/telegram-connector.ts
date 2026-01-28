@@ -37,6 +37,10 @@ export class TelegramConnector {
       await this.handleHelp(ctx);
     });
 
+    this.bot.command('models', async (ctx) => {
+      await this.handleModels(ctx);
+    });
+
     this.bot.command('status', async (ctx) => {
       await this.handleStatus(ctx);
     });
@@ -151,6 +155,7 @@ export class TelegramConnector {
     await ctx.reply(
       'DockBrain Commands:\n\n' +
       '/help - Show this help message\n' +
+      '/models - Show configured LLM models\n' +
       '/status - Check your pairing status\n\n' +
       'You can also send me natural language requests, like:\n' +
       '- "Remind me tomorrow at 10am to call John"\n' +
@@ -175,6 +180,49 @@ export class TelegramConnector {
       `Rate limit: ${user.rate_limit_per_minute} messages/minute\n` +
       `Paired since: ${new Date(user.paired_at).toLocaleString()}`
     );
+  }
+
+  private async handleModels(ctx: Context): Promise<void> {
+    const chatId = ctx.chat?.id.toString();
+    if (!chatId) return;
+
+    if (!this.pairingManager.isUserPaired(chatId)) {
+      await ctx.reply('You need to pair first. Use /pair <token>');
+      return;
+    }
+
+    const provider = process.env.LLM_PROVIDER || 'openai';
+    let details = '';
+
+    switch (provider) {
+      case 'openrouter': {
+        const primary = process.env.OPENROUTER_MODEL || '(not set)';
+        const models = process.env.OPENROUTER_MODELS || primary;
+        details = `Provider: OpenRouter\nPrimary: ${primary}\nModels: ${models}`;
+        break;
+      }
+      case 'gemini': {
+        const model = process.env.GEMINI_MODEL || '(check config/default.yaml)';
+        details = `Provider: Gemini\nModel: ${model}`;
+        break;
+      }
+      case 'ollama': {
+        const model = process.env.OLLAMA_MODEL || '(check config/default.yaml)';
+        details = `Provider: Ollama\nModel: ${model}`;
+        break;
+      }
+      case 'mock': {
+        details = 'Provider: Mock (no LLM)';
+        break;
+      }
+      default: {
+        const model = process.env.OPENAI_MODEL || '(check config/default.yaml)';
+        details = `Provider: OpenAI\nModel: ${model}`;
+        break;
+      }
+    }
+
+    await ctx.reply(details);
   }
 
   private async handleGmailSetup(ctx: Context): Promise<void> {

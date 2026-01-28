@@ -59,18 +59,28 @@ export class OpenRouterProvider implements LLMProvider {
         if (!response.ok) {
           const error = await response.text();
           const err = new Error(`OpenRouter API error: ${response.status} - ${error}`);
+          lastError = err;
 
-          if (response.status >= 500 || response.status === 429) {
-            lastError = err;
-            continue;
+          if (response.status === 401 || response.status === 403) {
+            throw err;
           }
 
-          throw err;
+          this.logger.warn({ model, status: response.status }, 'OpenRouter model failed, trying next');
+          continue;
         }
 
         const data = (await response.json()) as OpenAIChatResponse;
+        const content = data.choices?.[0]?.message?.content ?? '';
+
+        if (!content) {
+          const err = new Error('OpenRouter response had empty content');
+          lastError = err;
+          this.logger.warn({ model }, 'OpenRouter empty response, trying next');
+          continue;
+        }
+
         return {
-          content: data.choices[0].message.content,
+          content,
           usage: data.usage
             ? {
                 prompt_tokens: data.usage.prompt_tokens,
@@ -81,6 +91,7 @@ export class OpenRouterProvider implements LLMProvider {
         };
       } catch (error: any) {
         lastError = error;
+        this.logger.warn({ model, error: error?.message }, 'OpenRouter model error, trying next');
       }
     }
 
