@@ -132,12 +132,16 @@ export class TelegramConnector {
       return;
     }
 
-    this.permissionManager.grantDefaultPermissions(result.user_id!);
+    if (result.is_admin) {
+      this.permissionManager.grantAdminPermissions(result.user_id!);
+    } else {
+      this.permissionManager.grantDefaultPermissions(result.user_id!);
+    }
 
     await ctx.reply(
-      'Successfully paired! 🎉\n\n' +
-      'You now have access to basic commands.\n' +
-      'Type /help to see what you can do.'
+      result.is_admin
+        ? 'Successfully paired as admin! 🎉\n\nYou now have access to all tools.\nType /help to see what you can do.'
+        : 'Successfully paired! 🎉\n\nYou now have access to basic commands.\nType /help to see what you can do.'
     );
 
     this.logger.info({ userId: result.user_id, chatId }, 'User paired successfully via Telegram');

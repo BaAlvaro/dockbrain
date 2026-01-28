@@ -29,7 +29,10 @@ export class AgentRuntime {
 
     const systemPrompt = this.buildSystemPrompt(toolDescriptors);
     const memoryContext = await this.buildMemoryContext(context.user_id);
-    const userPrompt = this.buildUserPrompt(context.user_message, memoryContext);
+    const userPrompt = this.buildUserPrompt(
+      context.user_message,
+      memoryContext ?? undefined
+    );
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },

@@ -35,11 +35,14 @@ export class PairingManager {
     };
   }
 
-  async pairUser(request: PairingRequest): Promise<{ success: boolean; user_id?: number; error?: string }> {
+  async pairUser(request: PairingRequest): Promise<{ success: boolean; user_id?: number; is_admin?: boolean; error?: string }> {
     if (!this.pairingTokenRepo.isValid(request.token)) {
       this.logger.warn({ token: request.token.substring(0, 6) + '...' }, 'Invalid or expired pairing token');
       return { success: false, error: 'Invalid or expired pairing token' };
     }
+
+    const pairingToken = this.pairingTokenRepo.findByToken(request.token);
+    const isAdmin = Boolean(pairingToken?.is_admin);
 
     const existingUser = this.userRepo.findByTelegramChatId(request.telegram_chat_id);
     if (existingUser) {
@@ -57,7 +60,7 @@ export class PairingManager {
 
     this.logger.info({ userId: user.id, chatId: request.telegram_chat_id }, 'User paired successfully');
 
-    return { success: true, user_id: user.id };
+    return { success: true, user_id: user.id, is_admin: isAdmin };
   }
 
   isUserPaired(telegramChatId: string): boolean {
