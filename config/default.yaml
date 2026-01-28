@@ -58,7 +58,7 @@ tools:
       - ".log"
 
   files_write:
-    enabled: false
+    enabled: true
     max_file_size_mb: 10
     backup_enabled: true
     backup_dir_name: ".backups"
@@ -100,7 +100,7 @@ tools:
     login_timeout_ms: 60000
 
   system_exec:
-    enabled: false
+    enabled: true
     allowed_commands:
       - "ls"
       - "pwd"
@@ -142,8 +142,8 @@ tools:
     allowed_working_dirs: []
 
   memory:
-    enabled: false
+    enabled: true
     data_dir: "./data/memory"
 
   sessions:
-    enabled: false
+    enabled: true
