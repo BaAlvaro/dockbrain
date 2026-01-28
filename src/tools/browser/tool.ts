@@ -129,10 +129,24 @@ export class BrowserTool extends BaseTool {
 
   private async ensureBrowser(): Promise<void> {
     if (this.browser) return;
+    await this.ensurePuppeteerConfigDir();
     this.browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+  }
+
+  private async ensurePuppeteerConfigDir(): Promise<void> {
+    if (!process.env.XDG_CONFIG_HOME) {
+      process.env.XDG_CONFIG_HOME = path.join(process.cwd(), 'data', 'xdg');
+    }
+
+    const configDir = path.join(process.env.XDG_CONFIG_HOME, 'puppeteer');
+    try {
+      await fs.mkdir(configDir, { recursive: true });
+    } catch (error: any) {
+      this.logger.warn({ error, configDir }, 'Failed to create puppeteer config dir');
+    }
   }
 
   private async navigate(url: string, waitForSelector?: string): Promise<ToolExecutionResult> {
