@@ -440,8 +440,14 @@ cd "$INSTALL_DIR"
 
 # Install dependencies
 echo ""
-echo -e "${BLUE}Installing Node.js dependencies...${NC}"
-npm install
+    echo -e "${BLUE}Installing Node.js dependencies...${NC}"
+    npm install
+
+    # Rebuild native modules to match current Node.js version (fixes ERR_DLOPEN_FAILED)
+    if [ -f "$INSTALL_DIR/node_modules/better-sqlite3/build/Release/better_sqlite3.node" ]; then
+        echo -e "${BLUE}Rebuilding native modules (better-sqlite3)...${NC}"
+        npm rebuild better-sqlite3 || true
+    fi
 
 # Install Puppeteer dependencies + Chrome if puppeteer is present
 if node -e "process.exit(require('./package.json').dependencies?.puppeteer ? 0 : 1)" >/dev/null 2>&1; then
