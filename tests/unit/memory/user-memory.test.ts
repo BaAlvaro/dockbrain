@@ -53,4 +53,11 @@ describe('MemoryManager', () => {
     const results = await manager.search(1, 'respuesta');
     expect(results.length).toBeGreaterThan(0);
   });
+
+  it('searches with relevance ordering', async () => {
+    await manager.addMemory(1, 'prefiere azul', 'preference', 0.9);
+    await manager.addMemory(1, 'le gusta rojo', 'preference', 0.2);
+    const results = await manager.search(1, 'prefiere');
+    expect(results[0].content).toContain('prefiere');
+  });
 });

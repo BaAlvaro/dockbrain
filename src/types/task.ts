@@ -19,6 +19,8 @@ export const ExecutionPlanSchema = z.object({
 
 export const StepLogSchema = z.object({
   id: z.string(),
+  tool: z.string().optional(),
+  action: z.string().optional(),
   started_at: z.number(),
   completed_at: z.number().optional(),
   status: z.enum(['running', 'success', 'error']),

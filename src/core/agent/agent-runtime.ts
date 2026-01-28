@@ -141,6 +141,34 @@ Generate a natural language response for the user.`;
     }
 
     const result = lastStep.result || {};
+    const tool = lastStep.tool;
+    const action = lastStep.action;
+
+    if (tool === 'memory' && action === 'add' && result.content) {
+      return `Listo. Lo recordaré: "${result.content}".`;
+    }
+
+    if (tool === 'memory' && action === 'search') {
+      const items = Array.isArray(result.results) ? result.results : [];
+      if (items.length === 0) {
+        return 'No encontré recuerdos relacionados con eso.';
+      }
+      const top = items.slice(0, 3).map((m: any) => `- ${m.content}`).join('\n');
+      return `Esto es lo que recuerdo:\n${top}`;
+    }
+
+    if (tool === 'files_write' && result.path) {
+      switch (action) {
+        case 'write':
+          return `Archivo guardado en ${result.path}.`;
+        case 'append':
+          return `Contenido añadido en ${result.path}.`;
+        case 'edit':
+          return `Archivo actualizado en ${result.path}.`;
+        case 'delete':
+          return `Archivo eliminado: ${result.path}.`;
+      }
+    }
 
     if (result.reminder_id && result.remind_at && result.message) {
       const date = new Date(result.remind_at);
@@ -207,6 +235,9 @@ CRITICAL RULES:
 4. Choose appropriate verification type: file_exists, reminder_created, data_retrieved, or none
 5. If no tool is needed (greetings, small talk, acknowledgements), return an EMPTY plan
 6. Return ONLY valid JSON, no additional text
+7. If the user asks you to remember something, use the memory tool (action: add)
+8. If the user asks about past info, preferences, or "what did I say", use memory tool (action: search)
+9. Never claim file changes unless a files_write tool step was executed
 
 Response format:
 {

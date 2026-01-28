@@ -42,6 +42,8 @@ export class TaskExecutor {
   ): Promise<StepLog> {
     const stepLog: StepLog = {
       id: step.id,
+      tool: step.tool,
+      action: step.action,
       started_at: Date.now(),
       status: 'running',
     };

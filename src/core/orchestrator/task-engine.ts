@@ -77,6 +77,18 @@ export class TaskEngine {
     }
 
     try {
+      const quickPlan = this.tryBuildMemoryPlan(task.user_id, task.input_message, availableTools);
+      if (quickPlan) {
+        if (!this.validatePlanPermissions(task.user_id, quickPlan)) {
+          return this.failTask(task, 'Plan contains unauthorized tool usage');
+        }
+
+        task.plan = quickPlan;
+        this.taskRepo.update(task.id, { plan: task.plan });
+        this.logger.info({ taskId: task.id, steps: quickPlan.steps.length }, 'Planning phase completed');
+        return task;
+      }
+
       const plan = await this.agentRuntime.generatePlan({
         user_id: task.user_id,
         user_message: task.input_message,
@@ -95,6 +107,40 @@ export class TaskEngine {
     } catch (error: any) {
       return this.failTask(task, `Planning failed: ${error.message}`);
     }
+  }
+
+  private tryBuildMemoryPlan(userId: number, message: string, availableTools: string[]): any | null {
+    if (!availableTools.includes('memory')) return null;
+    if (!this.permissionManager.hasPermission(userId, 'memory', 'add')) return null;
+
+    const trimmed = message.trim();
+    const lower = trimmed.toLowerCase();
+
+    const rememberPrefixes = ['recuerda', 'recorda', 'remember', 'acuérdate', 'guardá', 'guarda'];
+    const isRemember = rememberPrefixes.some((prefix) => lower.startsWith(prefix));
+
+    if (!isRemember) return null;
+
+    const content = trimmed.replace(/^[^a-zA-Z0-9áéíóúñü]+/i, '').replace(/^(recuerda|recorda|remember|acuérdate|guarda)\s*/i, '').trim();
+    const finalContent = content.length > 0 ? content : trimmed;
+
+    return {
+      steps: [
+        {
+          id: 'step_1',
+          tool: 'memory',
+          action: 'add',
+          params: {
+            content: finalContent,
+            category: 'context',
+            relevance: 0.8,
+          },
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        },
+      ],
+      estimated_tools: ['memory'],
+    };
   }
 
   private async executionPhase(task: Task): Promise<Task> {

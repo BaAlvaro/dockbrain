@@ -59,7 +59,15 @@ export class MemoryTool extends BaseTool {
   ): Promise<ToolExecutionResult> {
     const entry = await this.memoryManager.addMemory(userId, content, category, relevance);
 
-    return { success: true, data: { id: entry.id, timestamp: entry.timestamp } };
+    return {
+      success: true,
+      data: {
+        id: entry.id,
+        timestamp: entry.timestamp,
+        category: entry.category,
+        content: entry.content,
+      },
+    };
   }
 
   private async searchMemory(userId: number, query: string): Promise<ToolExecutionResult> {
