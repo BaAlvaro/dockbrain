@@ -16,6 +16,7 @@ import { AuditLogger } from './core/security/audit-logger.js';
 import { ToolRegistry } from './tools/registry.js';
 import { AgentRuntime } from './core/agent/agent-runtime.js';
 import { UserMemoryManager } from './core/memory/user-memory.js';
+import { MemoryManager } from './core/memory/memory-manager.js';
 import { MockLLMProvider } from './core/agent/providers/mock-provider.js';
 import { OpenAIProvider } from './core/agent/providers/openai-provider.js';
 import { OllamaProvider } from './core/agent/providers/ollama-provider.js';
@@ -82,7 +83,16 @@ async function main() {
     );
 
     const memoryManager = config.tools.memory.enabled
-      ? new UserMemoryManager(logger, config.tools.memory.data_dir)
+      ? new MemoryManager(
+          logger,
+          new UserMemoryManager(logger, config.tools.memory.data_dir),
+          {
+            include_in_prompt: config.tools.memory.include_in_prompt,
+            max_entries: config.tools.memory.max_entries,
+            auto_append_user: config.tools.memory.auto_append_user,
+            auto_append_assistant: config.tools.memory.auto_append_assistant,
+          }
+        )
       : undefined;
 
     const agentRuntime = new AgentRuntime(
@@ -107,7 +117,8 @@ async function main() {
       permissionManager,
       auditLogger,
       logger,
-      config.security.max_retry_attempts
+      config.security.max_retry_attempts,
+      memoryManager
     );
 
     const rateLimiter = new RateLimiter(logger, config.security.rate_limit_per_minute);

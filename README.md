@@ -12,6 +12,11 @@ DockBrain is an intelligent assistant that lives in Telegram and executes real a
 - **LLM-Powered**: Uses GPT-4, Ollama (local LLMs), or mock provider for intelligent task planning
 - **100% Private with Ollama**: Run completely offline with local AI models (no data leaves your computer)
 - **Telegram Integration**: Chat-based interface for ease of use
+- **Browser Automation**: Screenshots, form fill, and data extraction
+- **File Write/Edit**: Safe-root file operations with backups
+- **System Exec**: Allowlisted command execution with confirmations
+- **Memory**: Persistent per-user memory + prompt context
+- **Sessions**: Multi-agent sessions with persistence
 
 ## 🦙 NEW: Local LLMs with Ollama
 

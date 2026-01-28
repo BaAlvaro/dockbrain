@@ -24,7 +24,8 @@ export class TaskEngine {
     private permissionManager: PermissionManager,
     private auditLogger: AuditLogger,
     private logger: Logger,
-    maxRetries: number = 3
+    maxRetries: number = 3,
+    private memoryManager?: { recordInteraction: (userId: number, userMessage: string, assistantMessage: string) => Promise<void> }
   ) {
     this.executor = new TaskExecutor(toolRegistry, auditLogger, logger);
     this.verifier = new TaskVerifier(reminderRepo, logger);
@@ -189,6 +190,10 @@ export class TaskEngine {
       });
 
       this.auditLogger.logTaskEvent(task.user_id, task.id, 'task_completed', true);
+
+      if (this.memoryManager) {
+        await this.memoryManager.recordInteraction(task.user_id, task.input_message, finalResponse);
+      }
 
       this.logger.info(
         { taskId: task.id, duration: task.completed_at - (task.started_at || 0) },

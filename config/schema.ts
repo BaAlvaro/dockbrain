@@ -116,6 +116,8 @@ export const ConfigSchema = z.object({
       data_dir: z.string(),
       include_in_prompt: z.boolean().default(true),
       max_entries: z.number().int().min(1).max(50).default(10),
+      auto_append_user: z.boolean().default(true),
+      auto_append_assistant: z.boolean().default(true),
     }),
     sessions: z.object({
       enabled: z.boolean(),

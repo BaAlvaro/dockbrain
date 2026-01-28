@@ -3,9 +3,14 @@ import { BaseTool } from '../base-tool.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool.js';
 import type { Logger } from '../../utils/logger.js';
 import { SessionManager } from '../../core/orchestrator/session-manager.js';
+import { MessageRouter } from '../../core/orchestrator/message-router.js';
 
 export class SessionsTool extends BaseTool {
-  constructor(logger: Logger, private sessionManager: SessionManager) {
+  constructor(
+    logger: Logger,
+    private sessionManager: SessionManager,
+    private messageRouter: MessageRouter
+  ) {
     super(logger);
   }
 
@@ -84,14 +89,12 @@ export class SessionsTool extends BaseTool {
     sessionId: string,
     message: string
   ): Promise<ToolExecutionResult> {
-    const session = await this.sessionManager.getSession(sessionId);
-    if (!session || session.userId !== userId) {
-      return { success: false, error: 'Session not found' };
+    try {
+      const reply = await this.messageRouter.routeToSession(userId, sessionId, message);
+      return { success: true, data: { session_id: sessionId, reply } };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Session not found' };
     }
-
-    const reply = await session.send(message);
-    await this.sessionManager.recordMessage(sessionId);
-    return { success: true, data: { session_id: sessionId, reply } };
   }
 
   private async destroySession(userId: number, sessionId: string): Promise<ToolExecutionResult> {

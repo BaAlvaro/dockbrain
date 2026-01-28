@@ -19,7 +19,9 @@ import { MemoryTool } from './memory/tool.js';
 import { SessionsTool } from './sessions/tool.js';
 import type { LLMProvider } from '../core/agent/llm-provider.js';
 import { UserMemoryManager } from '../core/memory/user-memory.js';
+import { MemoryManager } from '../core/memory/memory-manager.js';
 import { SessionManager } from '../core/orchestrator/session-manager.js';
+import { MessageRouter } from '../core/orchestrator/message-router.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -110,7 +112,13 @@ export class ToolRegistry {
     }
 
     if (config.tools.memory.enabled) {
-      const memoryManager = new UserMemoryManager(logger, config.tools.memory.data_dir);
+      const userMemory = new UserMemoryManager(logger, config.tools.memory.data_dir);
+      const memoryManager = new MemoryManager(logger, userMemory, {
+        include_in_prompt: config.tools.memory.include_in_prompt,
+        max_entries: config.tools.memory.max_entries,
+        auto_append_user: config.tools.memory.auto_append_user,
+        auto_append_assistant: config.tools.memory.auto_append_assistant,
+      });
       this.register(new MemoryTool(logger, memoryManager));
     }
 
@@ -122,7 +130,8 @@ export class ToolRegistry {
         config.llm.max_tokens,
         config.tools.sessions.data_dir
       );
-      this.register(new SessionsTool(logger, sessionManager));
+      const messageRouter = new MessageRouter(logger, sessionManager);
+      this.register(new SessionsTool(logger, sessionManager, messageRouter));
     }
 
     if (config.tools.codex_auth.enabled) {

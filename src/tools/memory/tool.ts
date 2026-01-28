@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { BaseTool } from '../base-tool.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../types/tool.js';
 import type { Logger } from '../../utils/logger.js';
-import { UserMemoryManager } from '../../core/memory/user-memory.js';
+import { MemoryManager } from '../../core/memory/memory-manager.js';
 
 export class MemoryTool extends BaseTool {
-  constructor(logger: Logger, private memoryManager: UserMemoryManager) {
+  constructor(logger: Logger, private memoryManager: MemoryManager) {
     super(logger);
   }
 
@@ -57,17 +57,13 @@ export class MemoryTool extends BaseTool {
     category: 'fact' | 'preference' | 'context',
     relevance: number
   ): Promise<ToolExecutionResult> {
-    const entry = await this.memoryManager.addMemory(userId, {
-      content,
-      category,
-      relevance,
-    });
+    const entry = await this.memoryManager.addMemory(userId, content, category, relevance);
 
     return { success: true, data: { id: entry.id, timestamp: entry.timestamp } };
   }
 
   private async searchMemory(userId: number, query: string): Promise<ToolExecutionResult> {
-    const results = await this.memoryManager.searchMemories(userId, query);
+    const results = await this.memoryManager.search(userId, query);
     return { success: true, data: { results } };
   }
 }

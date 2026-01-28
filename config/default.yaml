@@ -146,6 +146,8 @@ tools:
     data_dir: "./data/memory"
     include_in_prompt: true
     max_entries: 10
+    auto_append_user: true
+    auto_append_assistant: true
 
   sessions:
     enabled: true

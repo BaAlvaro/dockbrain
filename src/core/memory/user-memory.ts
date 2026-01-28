@@ -1,27 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { Logger } from '../../utils/logger.js';
-
-export type MemoryCategory = 'fact' | 'preference' | 'context';
-
-export interface MemoryEntry {
-  id: string;
-  timestamp: number;
-  category: MemoryCategory;
-  content: string;
-  relevance: number;
-}
-
-export interface UserMemory {
-  userId: number;
-  profile: {
-    name?: string;
-    telegram?: string;
-    preferences: Record<string, any>;
-    context: string[];
-  };
-  memories: MemoryEntry[];
-}
+import type { MemoryEntry, UserMemory } from './types.js';
 
 export class UserMemoryManager {
   constructor(private logger: Logger, private dataDir: string) {}
@@ -67,9 +47,19 @@ export class UserMemoryManager {
     const memory = await this.getUserMemory(userId);
     const keywords = query.toLowerCase().split(/\s+/).filter(Boolean);
 
-    return memory.memories
-      .filter((m) => keywords.some((keyword) => m.content.toLowerCase().includes(keyword)))
-      .sort((a, b) => b.relevance - a.relevance);
+    const scored = memory.memories
+      .map((entry) => {
+        const content = entry.content.toLowerCase();
+        const hits = keywords.reduce((count, keyword) => count + (content.includes(keyword) ? 1 : 0), 0);
+        const recencyBoost = Math.min(1, (Date.now() - entry.timestamp) / (1000 * 60 * 60 * 24 * 7));
+        const score = hits * 1.5 + entry.relevance + (1 - recencyBoost);
+        return { entry, score, hits };
+      })
+      .filter((item) => item.hits > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.entry);
+
+    return scored;
   }
 
   private async createUserMemory(userId: number): Promise<UserMemory> {

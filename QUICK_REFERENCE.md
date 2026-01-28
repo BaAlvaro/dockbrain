@@ -201,6 +201,7 @@ Crea archivo report.txt con contenido hola
 Reemplaza en report.txt la palabra hola por DockBrain
 Crea una carpeta DockbrainTeest
 Recuerda que mi proyecto se llama DockBrain
+¿Cómo se llama mi proyecto?
 Crea una sesión llamada research
 Envía a la sesión research: resume qué es Docker
 ```
