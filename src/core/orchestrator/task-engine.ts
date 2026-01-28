@@ -179,8 +179,8 @@ export class TaskEngine {
     } else if (lower.includes('hostname')) {
       command = 'hostname';
     } else if (lower.includes('crea') && (lower.includes('carpeta') || lower.includes('folder'))) {
-      const folder = this.extractSafeName(trimmed, /(carpeta|folder)\s+(?:llamada\s+|nombre\s+)?["']?([^"'\n]+)["']?/i, 2);
-      const file = this.extractSafeName(trimmed, /(archivo|file)\s+(?:llamado\s+|nombre\s+)?["']?([^"'\n]+)["']?/i, 2);
+      const folder = this.extractSimpleName(trimmed, /(carpeta|folder)/i);
+      const file = this.extractSimpleName(trimmed, /(archivo|file)/i);
       if (!folder) return null;
 
       const parts: string[] = [];
@@ -238,17 +238,30 @@ export class TaskEngine {
     };
   }
 
-  private extractSafeName(input: string, pattern: RegExp, groupIndex: number): string | null {
-    const match = input.match(pattern);
-    const raw = match?.[groupIndex]?.trim();
-    if (!raw) return null;
-    if (!/^[a-zA-Z0-9 _.-]+$/.test(raw)) {
+  private extractSimpleName(input: string, keyword: RegExp): string | null {
+    const quoted = new RegExp(`${keyword.source}\\s+(?:llamad[ao]\\s+|nombre\\s+)?["']([^"']+)["']`, 'i');
+    const quotedMatch = input.match(quoted);
+    const rawQuoted = quotedMatch?.[1]?.trim();
+    if (rawQuoted) {
+      return this.sanitizeSimpleName(rawQuoted);
+    }
+
+    const unquoted = new RegExp(`${keyword.source}\\s+(?:llamad[ao]\\s+|nombre\\s+)?([A-Za-z0-9._-]+)`, 'i');
+    const unquotedMatch = input.match(unquoted);
+    const rawUnquoted = unquotedMatch?.[1]?.trim();
+    if (rawUnquoted) {
+      return this.sanitizeSimpleName(rawUnquoted);
+    }
+
+    return null;
+  }
+
+  private sanitizeSimpleName(value: string): string | null {
+    if (!/^[a-zA-Z0-9._-]+$/.test(value)) {
       return null;
     }
-    if (raw.includes('/')) {
-      return null;
-    }
-    return raw;
+    if (value.includes('/')) return null;
+    return value;
   }
 
   private shellEscape(value: string): string {
