@@ -84,11 +84,66 @@ install_codex_cli() {
     npm i -g @openai/codex
 }
 
+# Update or append env var in .env
+set_env_var() {
+    local key="$1"
+    local value="$2"
+    local file=".env"
+    if grep -q "^${key}=" "$file"; then
+        sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+    else
+        echo "${key}=${value}" >> "$file"
+    fi
+}
+
 # Enable Codex auth tool in default config
 enable_codex_auth_config() {
     if [ -f "$INSTALL_DIR/config/default.yaml" ]; then
         perl -0777 -i -pe 's/(codex_auth:\n\s*enabled:\s*)false/\1true/' "$INSTALL_DIR/config/default.yaml" || true
     fi
+}
+
+# Prompt for LLM provider and optional Codex login
+prompt_llm_provider() {
+    echo ""
+    echo -e "${BLUE}Select LLM provider:${NC}"
+    echo "  1) OpenAI API"
+    echo "  2) Ollama (local)"
+    echo "  3) Mock (no LLM)"
+    echo "  4) Codex login (ChatGPT account for Codex CLI)"
+    read -p "Choose [1-4] (default: 1): " -n 1 -r
+    echo ""
+    CHOICE=${REPLY:-1}
+
+    case $CHOICE in
+        2)
+            set_env_var "LLM_PROVIDER" "ollama"
+            ;;
+        3)
+            set_env_var "LLM_PROVIDER" "mock"
+            ;;
+        4)
+            set_env_var "LLM_PROVIDER" "openai"
+            enable_codex_auth_config
+            echo -e "${YELLOW}Codex login will authenticate the Codex CLI. DockBrain still needs an OpenAI API key unless you use Ollama.${NC}"
+            if ! command -v codex &> /dev/null; then
+                read -p "Install Codex CLI now? (y/n) " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    install_codex_cli
+                fi
+            fi
+            if command -v codex &> /dev/null; then
+                echo -e "${BLUE}Starting Codex login (device auth). Follow the link and enter the code.${NC}"
+                codex login --device-auth || true
+            else
+                echo -e "${YELLOW}Codex CLI not installed. You can install later with: npm i -g @openai/codex${NC}"
+            fi
+            ;;
+        *)
+            set_env_var "LLM_PROVIDER" "openai"
+            ;;
+    esac
 }
 
 # Function to install build tools
@@ -241,47 +296,7 @@ if [ ! -f .env ]; then
     # Update .env with generated token
     sed -i "s/your_admin_api_token_here/$ADMIN_TOKEN/" .env
 
-    # Choose LLM provider
-    echo ""
-    echo -e "${BLUE}Select LLM provider:${NC}"
-    echo "  1) OpenAI API"
-    echo "  2) Ollama (local)"
-    echo "  3) Mock (no LLM)"
-    echo "  4) Codex login (ChatGPT account for Codex CLI)"
-    read -p "Choose [1-4] (default: 1): " -n 1 -r
-    echo ""
-    CHOICE=${REPLY:-1}
-
-    case $CHOICE in
-        2)
-            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=ollama/' .env
-            ;;
-        3)
-            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=mock/' .env
-            ;;
-        4)
-            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=openai/' .env
-            enable_codex_auth_config
-            echo -e "${YELLOW}Codex login will authenticate the Codex CLI. DockBrain still needs an OpenAI API key unless you use Ollama.${NC}"
-            if ! command -v codex &> /dev/null; then
-                read -p "Install Codex CLI now? (y/n) " -n 1 -r
-                echo ""
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    install_codex_cli
-                fi
-            fi
-            if command -v codex &> /dev/null; then
-                echo -e "${BLUE}Starting Codex login (device auth). Follow the link and enter the code.${NC}"
-                codex login --device-auth || true
-            else
-                echo -e "${YELLOW}Codex CLI not installed. You can install later with: npm i -g @openai/codex${NC}"
-            fi
-            ;;
-        *)
-            # Default OpenAI
-            sed -i 's/LLM_PROVIDER=openai/LLM_PROVIDER=openai/' .env
-            ;;
-    esac
+    prompt_llm_provider
 
     echo -e "${GREEN}.env file created with admin token.${NC}"
     echo ""
@@ -292,7 +307,14 @@ if [ ! -f .env ]; then
     echo -e "${YELLOW}Save this token! You'll need it to manage DockBrain via HTTP API.${NC}"
     echo ""
 else
-    echo -e "${GREEN}.env file already exists. Skipping.${NC}"
+    echo -e "${GREEN}.env file already exists.${NC}"
+    read -p "Reconfigure LLM provider? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        prompt_llm_provider
+    else
+        echo -e "${YELLOW}Skipping LLM provider configuration.${NC}"
+    fi
 fi
 
 # Create systemd service if running as root
