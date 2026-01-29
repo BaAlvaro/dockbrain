@@ -163,3 +163,7 @@ tools:
   sessions:
     enabled: true
     data_dir: "./data/sessions"
+
+  skills:
+    enabled: true
+    directory: "./skills"

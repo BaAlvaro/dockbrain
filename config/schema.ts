@@ -124,6 +124,10 @@ export const ConfigSchema = z.object({
       enabled: z.boolean(),
       data_dir: z.string(),
     }),
+    skills: z.object({
+      enabled: z.boolean(),
+      directory: z.string(),
+    }),
   }),
 });
 

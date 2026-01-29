@@ -17,11 +17,13 @@ import { BrowserTool } from './browser/tool.js';
 import { FilesWriteTool } from './files-write/tool.js';
 import { MemoryTool } from './memory/tool.js';
 import { SessionsTool } from './sessions/tool.js';
+import { SkillsTool } from './skills/tool.js';
 import type { LLMProvider } from '../core/agent/llm-provider.js';
 import { UserMemoryManager } from '../core/memory/user-memory.js';
 import { MemoryManager } from '../core/memory/memory-manager.js';
 import { SessionManager } from '../core/orchestrator/session-manager.js';
 import { MessageRouter } from '../core/orchestrator/message-router.js';
+import { SkillLoader } from '../core/skills/skill-loader.js';
 
 export class ToolRegistry {
   private tools = new Map<string, BaseTool>();
@@ -132,6 +134,13 @@ export class ToolRegistry {
       );
       const messageRouter = new MessageRouter(logger, sessionManager);
       this.register(new SessionsTool(logger, sessionManager, messageRouter));
+    }
+
+    if (config.tools.skills.enabled) {
+      const loader = new SkillLoader(logger, config.tools.skills.directory);
+      loader.loadAll().then((skills) => {
+        this.register(new SkillsTool(logger, skills));
+      });
     }
 
     if (config.tools.codex_auth.enabled) {
