@@ -83,6 +83,7 @@ export class TaskEngine {
     try {
       const quickPlan =
         this.tryBuildMemoryPlan(task.user_id, task.input_message, availableTools) ||
+        this.tryBuildSkillsPlan(task.user_id, task.input_message, availableTools) ||
         this.tryBuildReminderStatusPlan(task.user_id, task.input_message, availableTools) ||
         this.tryBuildSystemExecPlan(task.user_id, task.input_message, availableTools);
       if (quickPlan) {
@@ -295,6 +296,8 @@ export class TaskEngine {
       lower.includes('cuanto falta') ||
       lower.includes('cuándo me avisas') ||
       lower.includes('cuando me avisas') ||
+      lower.includes('qué hora me avisas') ||
+      lower.includes('que hora me avisas') ||
       lower.includes('para cuándo') ||
       lower.includes('cuando es el recordatorio') ||
       lower.includes('qué recordatorios tengo') ||
@@ -314,6 +317,34 @@ export class TaskEngine {
         },
       ],
       estimated_tools: ['reminders'],
+    };
+  }
+
+  private tryBuildSkillsPlan(userId: number, message: string, availableTools: string[]): any | null {
+    if (!availableTools.includes('skills')) return null;
+    if (!this.permissionManager.hasPermission(userId, 'skills', 'list')) return null;
+
+    const lower = message.trim().toLowerCase();
+    const wantsList =
+      lower.includes('listar skills') ||
+      lower.includes('lista de skills') ||
+      lower.includes('lista skills') ||
+      lower.includes('skills disponibles');
+
+    if (!wantsList) return null;
+
+    return {
+      steps: [
+        {
+          id: 'step_1',
+          tool: 'skills',
+          action: 'list',
+          params: {},
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        },
+      ],
+      estimated_tools: ['skills'],
     };
   }
 
