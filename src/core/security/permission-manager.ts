@@ -118,6 +118,8 @@ export class PermissionManager {
       { tool_name: 'sessions', action: 'list', granted: true, requires_confirmation: false },
       { tool_name: 'sessions', action: 'send', granted: true, requires_confirmation: false },
       { tool_name: 'sessions', action: 'destroy', granted: true, requires_confirmation: true },
+      { tool_name: 'skills', action: 'list', granted: true, requires_confirmation: false },
+      { tool_name: 'skills', action: 'run', granted: true, requires_confirmation: true },
       { tool_name: 'email', action: 'send', granted: true, requires_confirmation: true },
       { tool_name: 'gmail', action: 'send', granted: true, requires_confirmation: true },
       { tool_name: 'codex_auth', action: 'login_chatgpt', granted: true, requires_confirmation: true },
