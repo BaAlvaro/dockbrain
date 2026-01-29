@@ -12,6 +12,11 @@ security:
     - "wikipedia.org"
     - "github.com"
     - "stackoverflow.com"
+    - "google.com"
+    - "www.google.com"
+    - "maps.google.com"
+    - "nominatim.openstreetmap.org"
+    - "openstreetmap.org"
 
   # Blocked IP ranges (private networks)
   web_blocked_ip_ranges:

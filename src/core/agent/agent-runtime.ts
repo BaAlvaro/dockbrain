@@ -103,7 +103,7 @@ export class AgentRuntime {
   }
 
   async generateFinalResponse(userMessage: string, executionLog: any): Promise<string> {
-    const toolResponse = this.tryBuildToolResponse(executionLog);
+    const toolResponse = this.tryBuildToolResponse(executionLog, userMessage);
     if (toolResponse) {
       return toolResponse;
     }
@@ -133,7 +133,7 @@ Generate a natural language response for the user.`;
     return response.content.trim();
   }
 
-  private tryBuildToolResponse(executionLog: any): string | null {
+  private tryBuildToolResponse(executionLog: any, userMessage?: string): string | null {
     const steps = executionLog?.steps || [];
     const lastStep = steps[steps.length - 1];
     if (!lastStep || lastStep.status !== 'success') {
@@ -201,6 +201,32 @@ Generate a natural language response for the user.`;
     if (Array.isArray(result.reminders)) {
       if (result.reminders.length === 0) {
         return 'No tienes recordatorios activos.';
+      }
+
+      const normalized = (userMessage || '').toLowerCase();
+      const wantsRemaining =
+        normalized.includes('cuánto falta') ||
+        normalized.includes('cuanto falta') ||
+        normalized.includes('cuándo me avisas') ||
+        normalized.includes('cuando me avisas') ||
+        normalized.includes('para cuándo') ||
+        normalized.includes('cuando es el recordatorio');
+
+      if (wantsRemaining) {
+        const next = result.reminders[0];
+        const remindAt = new Date(next.remind_at).getTime();
+        const now = Date.now();
+        const diffMs = Math.max(0, remindAt - now);
+        const minutes = Math.floor(diffMs / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        const remainingHours = hours % 24;
+        const remainingMinutes = minutes % 60;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (remainingHours > 0) parts.push(`${remainingHours}h`);
+        parts.push(`${remainingMinutes}m`);
+        return `Faltan ${parts.join(' ')} para "${next.message}".`;
       }
 
       const lines = result.reminders.map((r: any) => {

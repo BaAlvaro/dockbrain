@@ -83,6 +83,7 @@ export class TaskEngine {
     try {
       const quickPlan =
         this.tryBuildMemoryPlan(task.user_id, task.input_message, availableTools) ||
+        this.tryBuildReminderStatusPlan(task.user_id, task.input_message, availableTools) ||
         this.tryBuildSystemExecPlan(task.user_id, task.input_message, availableTools);
       if (quickPlan) {
         if (!this.validatePlanPermissions(task.user_id, quickPlan)) {
@@ -281,6 +282,38 @@ export class TaskEngine {
         },
       ],
       estimated_tools: ['system_exec'],
+    };
+  }
+
+  private tryBuildReminderStatusPlan(userId: number, message: string, availableTools: string[]): any | null {
+    if (!availableTools.includes('reminders')) return null;
+    if (!this.permissionManager.hasPermission(userId, 'reminders', 'list')) return null;
+
+    const lower = message.trim().toLowerCase();
+    const wantsStatus =
+      lower.includes('cuánto falta') ||
+      lower.includes('cuanto falta') ||
+      lower.includes('cuándo me avisas') ||
+      lower.includes('cuando me avisas') ||
+      lower.includes('para cuándo') ||
+      lower.includes('cuando es el recordatorio') ||
+      lower.includes('qué recordatorios tengo') ||
+      lower.includes('que recordatorios tengo');
+
+    if (!wantsStatus) return null;
+
+    return {
+      steps: [
+        {
+          id: 'step_1',
+          tool: 'reminders',
+          action: 'list',
+          params: {},
+          requires_confirmation: false,
+          verification: { type: 'data_retrieved', params: {} },
+        },
+      ],
+      estimated_tools: ['reminders'],
     };
   }
 
