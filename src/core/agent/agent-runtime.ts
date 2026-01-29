@@ -213,10 +213,18 @@ Generate a natural language response for the user.`;
         normalized.includes('cuando es el recordatorio');
 
       if (wantsRemaining) {
-        const next = result.reminders[0];
-        const remindAt = new Date(next.remind_at).getTime();
         const now = Date.now();
-        const diffMs = Math.max(0, remindAt - now);
+        const sorted = [...result.reminders].sort(
+          (a: any, b: any) => new Date(a.remind_at).getTime() - new Date(b.remind_at).getTime()
+        );
+        const upcoming = sorted.find((r: any) => new Date(r.remind_at).getTime() >= now);
+        const next = upcoming ?? sorted[0];
+        const remindAt = new Date(next.remind_at).getTime();
+        const diffMs = remindAt - now;
+        if (diffMs <= 0) {
+          const overdueMinutes = Math.abs(Math.floor(diffMs / 60000));
+          return `Ese recordatorio ya venció hace ${overdueMinutes}m: "${next.message}".`;
+        }
         const minutes = Math.floor(diffMs / 60000);
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
