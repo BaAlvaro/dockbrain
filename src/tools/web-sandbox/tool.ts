@@ -59,7 +59,8 @@ export class WebSandboxTool extends BaseTool {
       };
     }
 
-    const url = new URL(sanitizedUrl);
+    let currentUrl = sanitizedUrl;
+    let url = new URL(currentUrl);
 
     if (this.sanitizer.isPrivateIp(url.hostname)) {
       return {
@@ -76,24 +77,63 @@ export class WebSandboxTool extends BaseTool {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+      const maxRedirects = 5;
+      let response: Response | null = null;
 
-      const response = await fetch(sanitizedUrl, {
-        method: 'GET',
-        redirect: 'manual',
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'DockBrain/0.1.0',
-        },
-      });
+      for (let i = 0; i <= maxRedirects; i += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      clearTimeout(timeoutId);
+        response = await fetch(currentUrl, {
+          method: 'GET',
+          redirect: 'manual',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'DockBrain/0.1.0',
+          },
+        });
 
-      if (!response.ok) {
+        clearTimeout(timeoutId);
+
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get('location');
+          if (!location) {
+            return {
+              success: false,
+              error: `HTTP ${response.status}: ${response.statusText}`,
+            };
+          }
+          const nextUrl: URL = new URL(location, currentUrl);
+          if (this.sanitizer.isPrivateIp(nextUrl.hostname)) {
+            return {
+              success: false,
+              error: 'Access to private IP addresses is forbidden',
+            };
+          }
+          if (!this.sanitizer.validateDomain(nextUrl.hostname, this.allowedDomains)) {
+            return {
+              success: false,
+              error: `Domain ${nextUrl.hostname} is not in allowlist`,
+            };
+          }
+          currentUrl = nextUrl.toString();
+          url = nextUrl;
+          continue;
+        }
+
+        if (!response.ok) {
+          return {
+            success: false,
+            error: `HTTP ${response.status}: ${response.statusText}`,
+          };
+        }
+        break;
+      }
+
+      if (!response) {
         return {
           success: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
+          error: 'Failed to fetch URL',
         };
       }
 
@@ -119,7 +159,8 @@ export class WebSandboxTool extends BaseTool {
       return {
         success: true,
         data: {
-          url: sanitizedUrl,
+          url: currentUrl,
+          final_url: url.toString(),
           status: response.status,
           content: text,
           content_length: text.length,
